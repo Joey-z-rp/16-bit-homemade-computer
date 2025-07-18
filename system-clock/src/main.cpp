@@ -7,7 +7,7 @@
 ClockController clockController;
 Debouncer manualModeDebouncer(50);
 Debouncer manualTriggerDebouncer(50);
-FrequencyCalculator frequencyCalculator(FrequencyCalculator::DEFAULT_POT_PIN, 1.0, 10000000.0);
+FrequencyCalculator frequencyCalculator(FrequencyCalculator::DEFAULT_POT_PIN, 0.1, 4000000.0);
 
 void setup()
 {
@@ -36,9 +36,11 @@ void loop()
   bool manualModeReading = digitalRead(2); // D2
   if (manualModeDebouncer.update(manualModeReading))
   {
-    if (manualModeDebouncer.getState() != clockController.isManualMode())
+    // With pull-up resistor: LOW = pressed (manual mode ON), HIGH = not pressed (manual mode OFF)
+    bool manualModeRequested = !manualModeDebouncer.getState(); // Invert because pull-up makes pressed = LOW
+    if (manualModeRequested != clockController.isManualMode())
     {
-      clockController.setManualMode(!manualModeDebouncer.getState()); // Inverted due to pull-up
+      clockController.setManualMode(manualModeRequested);
     }
   }
 
@@ -66,11 +68,13 @@ void loop()
 
   // Debug output every second
   static unsigned long lastDebugTime = 0;
-  if (millis() - lastDebugTime > 1000)
+  if (millis() - lastDebugTime > 2000)
   {
     Serial.print("Pot Value: ");
     Serial.print(frequencyCalculator.getPotValue());
-    Serial.print(", Requested: ");
+    Serial.print(" (");
+    Serial.print(frequencyCalculator.getPotValue() * 100.0 / 1023.0);
+    Serial.print("%), Requested: ");
     Serial.print(frequencyCalculator.getCurrentFrequency());
     Serial.print(" Hz, Actual: ");
     Serial.print(clockController.getCurrentFrequency());

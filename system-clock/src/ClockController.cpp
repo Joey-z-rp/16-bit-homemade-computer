@@ -19,7 +19,8 @@ void ClockController::setupPins()
 
   // Setup clock output pin (Timer1 OC1A)
   pinMode(CLOCK_OUT_PIN, OUTPUT);
-  digitalWrite(CLOCK_OUT_PIN, LOW);
+  digitalWrite(CLOCK_OUT_PIN, HIGH); // Start with HIGH output
+  clockState = true;                 // Initialize clock state to HIGH
 }
 
 void ClockController::update()
@@ -52,7 +53,7 @@ void ClockController::startClock()
 void ClockController::stopClock()
 {
   stopPWM();
-  setClockLow();
+  setClockHigh();
 }
 
 void ClockController::setManualMode(bool manual)
@@ -81,8 +82,8 @@ void ClockController::handleManualTriggerPress()
   if (manualMode && !manualTriggerPressed)
   {
     manualTriggerPressed = true;
-    setClockHigh();
-    Serial.println("Manual Trigger: HIGH");
+    setClockLow(); // Set output to LOW when trigger is pressed
+    Serial.println("Manual Trigger: LOW");
   }
 }
 
@@ -91,8 +92,8 @@ void ClockController::handleManualTriggerRelease()
   if (manualMode && manualTriggerPressed)
   {
     manualTriggerPressed = false;
-    setClockLow();
-    Serial.println("Manual Trigger: LOW");
+    setClockHigh(); // Set output to HIGH when trigger is released
+    Serial.println("Manual Trigger: HIGH");
   }
 }
 
@@ -166,44 +167,76 @@ void ClockController::setupPWM()
   float actualFrequency;
 
   // Calculate the best prescaler and top value for the frequency
-  if (requestedFrequency > 1000000)
+  if (requestedFrequency >= 1000000)
   {
     // High frequency: no prescaler
     prescaler = (1 << CS10);                      // No prescaler
     pwmTop = 16000000 / (2 * requestedFrequency); // 16MHz clock
     actualFrequency = 16000000.0 / (2.0 * pwmTop);
   }
-  else if (requestedFrequency > 100000)
+  else if (requestedFrequency >= 100000)
   {
     // Medium frequency: prescaler 8
     prescaler = (1 << CS11);                     // Prescaler 8
     pwmTop = 2000000 / (2 * requestedFrequency); // 2MHz with prescaler 8
     actualFrequency = 2000000.0 / (2.0 * pwmTop);
   }
-  else
+  else if (requestedFrequency >= 1.0)
   {
     // Low frequency: prescaler 64
     prescaler = (1 << CS11) | (1 << CS10);      // Prescaler 64
     pwmTop = 250000 / (2 * requestedFrequency); // 250kHz with prescaler 64
     actualFrequency = 250000.0 / (2.0 * pwmTop);
   }
-
-  // Ensure pwmTop is within 16-bit range
-  if (pwmTop > 65535)
+  else
   {
-    pwmTop = 65535;
-    // Recalculate actual frequency with clamped pwmTop
-    if (requestedFrequency > 1000000)
+    // Very low frequency: use prescaler 1024 for frequencies below 1 Hz
+    prescaler = (1 << CS12) | (1 << CS10);     // Prescaler 1024
+    pwmTop = 15625 / (2 * requestedFrequency); // 15.625kHz with prescaler 1024
+    actualFrequency = 15625.0 / (2.0 * pwmTop);
+  }
+
+  // Ensure pwmTop is within valid range (minimum 2 for proper PWM operation)
+  if (pwmTop < 2)
+  {
+    pwmTop = 2;
+    // Recalculate actual frequency with minimum pwmTop
+    if (requestedFrequency >= 1000000)
     {
       actualFrequency = 16000000.0 / (2.0 * pwmTop);
     }
-    else if (requestedFrequency > 100000)
+    else if (requestedFrequency >= 100000)
     {
       actualFrequency = 2000000.0 / (2.0 * pwmTop);
     }
-    else
+    else if (requestedFrequency >= 1.0)
     {
       actualFrequency = 250000.0 / (2.0 * pwmTop);
+    }
+    else
+    {
+      actualFrequency = 15625.0 / (2.0 * pwmTop);
+    }
+  }
+  else if (pwmTop > 65535)
+  {
+    pwmTop = 65535;
+    // Recalculate actual frequency with clamped pwmTop
+    if (requestedFrequency >= 1000000)
+    {
+      actualFrequency = 16000000.0 / (2.0 * pwmTop);
+    }
+    else if (requestedFrequency >= 100000)
+    {
+      actualFrequency = 2000000.0 / (2.0 * pwmTop);
+    }
+    else if (requestedFrequency >= 1.0)
+    {
+      actualFrequency = 250000.0 / (2.0 * pwmTop);
+    }
+    else
+    {
+      actualFrequency = 15625.0 / (2.0 * pwmTop);
     }
   }
 
