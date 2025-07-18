@@ -2,12 +2,14 @@
 #include "ClockController.h"
 #include "Debouncer.h"
 #include "FrequencyCalculator.h"
+#include "LCDController.h"
 
 // Global objects
 ClockController clockController;
 Debouncer manualModeDebouncer(50);
 Debouncer manualTriggerDebouncer(50);
 FrequencyCalculator frequencyCalculator(FrequencyCalculator::DEFAULT_POT_PIN, 0.1, 4000000.0);
+LCDController lcdController(0x27, 16, 2); // I2C address 0x27, 16x2 display
 
 void setup()
 {
@@ -17,6 +19,10 @@ void setup()
 
   // Setup clock controller
   clockController.setupPins();
+
+  // Setup LCD display
+  lcdController.setup();
+  lcdController.testDisplay();
 
   Serial.println("System Clock Ready!");
 }
@@ -65,6 +71,13 @@ void loop()
 
     lastTriggerState = currentTriggerState;
   }
+
+  // Update LCD display
+  lcdController.updateDisplay(
+      clockController.getCurrentFrequency(),
+      clockController.getCurrentPeriod(),
+      clockController.isManualMode(),
+      clockController.getClockState());
 
   // Debug output every second
   static unsigned long lastDebugTime = 0;
