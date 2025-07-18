@@ -18,8 +18,6 @@ void LCDController::setup()
   // Clear and show initial message
   lcd->clear();
   lcd->setCursor(0, 0);
-  lcd->print("16-bit Clock");
-  lcd->setCursor(0, 1);
   lcd->print("Initializing...");
 
   connected = true;
@@ -88,33 +86,6 @@ void LCDController::setBacklight(bool on)
   }
 }
 
-bool LCDController::isConnected() const
-{
-  return connected;
-}
-
-void LCDController::testDisplay()
-{
-  if (!connected)
-    return;
-
-  // Contrast test - shows both lines clearly
-  lcd->clear();
-  lcd->setCursor(0, 0);
-  lcd->print("Line 1: Clear?");
-  lcd->setCursor(0, 1);
-  lcd->print("Line 2: Clear?");
-  delay(3000);
-
-  // Test with different characters
-  lcd->clear();
-  lcd->setCursor(0, 0);
-  lcd->print("ABCDEFGHIJKLMNOP");
-  lcd->setCursor(0, 1);
-  lcd->print("abcdefghijklmnop");
-  delay(3000);
-}
-
 bool LCDController::hasValuesChanged(float frequency, unsigned long period, bool manualMode, bool clockState)
 {
   // Use small tolerance for floating point comparison
@@ -168,7 +139,7 @@ String LCDController::formatPeriod(unsigned long period)
 {
   String result = "P:";
 
-  // period is now in nanoseconds from ClockController
+  // period is in nanoseconds from ClockController
   if (period >= 1000000000)
   {
     // Display in seconds

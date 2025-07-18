@@ -6,7 +6,6 @@ ClockController::ClockController()
   manualMode = false;
   currentFrequency = 1.0;
   requestedFrequency = 1.0;
-  lastConfiguredFrequency = 0.0; // Initialize to 0 to force first configuration
   manualTriggerPressed = false;
   currentPeriod = 1000000000; // Default 1Hz period in nanoseconds
 }
@@ -21,12 +20,6 @@ void ClockController::setupPins()
   pinMode(CLOCK_OUT_PIN, OUTPUT);
   digitalWrite(CLOCK_OUT_PIN, HIGH); // Start with HIGH output
   clockState = true;                 // Initialize clock state to HIGH
-}
-
-void ClockController::update()
-{
-  // Hardware PWM handles the square wave generation
-  // No need for manual toggling in the main loop
 }
 
 void ClockController::setClockHigh()
@@ -83,7 +76,7 @@ void ClockController::handleManualTriggerPress()
   {
     manualTriggerPressed = true;
     setClockLow(); // Set output to LOW when trigger is pressed
-    Serial.println("Manual Trigger: LOW");
+    Serial.println("Manual Trigger: HIGH");
   }
 }
 
@@ -93,7 +86,7 @@ void ClockController::handleManualTriggerRelease()
   {
     manualTriggerPressed = false;
     setClockHigh(); // Set output to HIGH when trigger is released
-    Serial.println("Manual Trigger: HIGH");
+    Serial.println("Manual Trigger: LOW");
   }
 }
 
@@ -120,21 +113,6 @@ void ClockController::setFrequency(float frequency)
     requestedFrequency = frequency;
 
     // Update PWM with new frequency only if not in manual mode
-    if (!manualMode)
-    {
-      updatePWM();
-    }
-  }
-}
-
-void ClockController::setPeriod(unsigned long period)
-{
-  // Only update if period has actually changed
-  if (period != currentPeriod)
-  {
-    currentPeriod = period;                   // period is in nanoseconds
-    currentFrequency = 1000000000.0 / period; // Convert nanoseconds to frequency
-
     if (!manualMode)
     {
       updatePWM();
@@ -200,44 +178,28 @@ void ClockController::setupPWM()
   if (pwmTop < 2)
   {
     pwmTop = 2;
-    // Recalculate actual frequency with minimum pwmTop
-    if (requestedFrequency >= 1000000)
-    {
-      actualFrequency = 16000000.0 / (2.0 * pwmTop);
-    }
-    else if (requestedFrequency >= 100000)
-    {
-      actualFrequency = 2000000.0 / (2.0 * pwmTop);
-    }
-    else if (requestedFrequency >= 1.0)
-    {
-      actualFrequency = 250000.0 / (2.0 * pwmTop);
-    }
-    else
-    {
-      actualFrequency = 15625.0 / (2.0 * pwmTop);
-    }
   }
   else if (pwmTop > 65535)
   {
     pwmTop = 65535;
-    // Recalculate actual frequency with clamped pwmTop
-    if (requestedFrequency >= 1000000)
-    {
-      actualFrequency = 16000000.0 / (2.0 * pwmTop);
-    }
-    else if (requestedFrequency >= 100000)
-    {
-      actualFrequency = 2000000.0 / (2.0 * pwmTop);
-    }
-    else if (requestedFrequency >= 1.0)
-    {
-      actualFrequency = 250000.0 / (2.0 * pwmTop);
-    }
-    else
-    {
-      actualFrequency = 15625.0 / (2.0 * pwmTop);
-    }
+  }
+
+  // Recalculate actual frequency with clamped pwmTop
+  if (requestedFrequency >= 1000000)
+  {
+    actualFrequency = 16000000.0 / (2.0 * pwmTop);
+  }
+  else if (requestedFrequency >= 100000)
+  {
+    actualFrequency = 2000000.0 / (2.0 * pwmTop);
+  }
+  else if (requestedFrequency >= 1.0)
+  {
+    actualFrequency = 250000.0 / (2.0 * pwmTop);
+  }
+  else
+  {
+    actualFrequency = 15625.0 / (2.0 * pwmTop);
   }
 
   // Set ICR1 as top value for Phase Correct PWM
@@ -254,8 +216,7 @@ void ClockController::setupPWM()
 
   // Update the actual frequency and period being generated
   currentFrequency = actualFrequency;
-  currentPeriod = calculatePeriod(actualFrequency); // Now returns nanoseconds
-  lastConfiguredFrequency = actualFrequency;
+  currentPeriod = calculatePeriod(actualFrequency);
 
   Serial.print("PWM started - Requested: ");
   Serial.print(requestedFrequency);
@@ -278,9 +239,8 @@ void ClockController::stopPWM()
 void ClockController::updatePWM()
 {
   // Only reconfigure PWM if requested frequency has changed since last configuration
-  if (abs(requestedFrequency - lastConfiguredFrequency) > 0.01) // Small tolerance for floating point comparison
+  if (abs(requestedFrequency - currentFrequency) > 0.01) // Small tolerance for floating point comparison
   {
     setupPWM();
-    // Note: setupPWM() now updates lastConfiguredFrequency internally
   }
 }

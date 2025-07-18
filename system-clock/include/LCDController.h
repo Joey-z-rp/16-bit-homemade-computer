@@ -8,20 +8,13 @@
 class LCDController
 {
 public:
-  // Constructor
   LCDController(uint8_t address = 0x27, uint8_t columns = 16, uint8_t rows = 2);
 
-  // Setup method
   void setup();
 
-  // Display update methods
   void updateDisplay(float frequency, unsigned long period, bool manualMode, bool clockState);
   void clearDisplay();
   void setBacklight(bool on);
-
-  // Utility methods
-  bool isConnected() const;
-  void testDisplay();
 
 private:
   LiquidCrystal_I2C *lcd;

@@ -17,12 +17,9 @@ void setup()
   Serial.begin(9600);
   Serial.println("16-bit Computer System Clock Starting...");
 
-  // Setup clock controller
   clockController.setupPins();
 
-  // Setup LCD display
   lcdController.setup();
-  lcdController.testDisplay();
 
   Serial.println("System Clock Ready!");
 }
@@ -34,9 +31,6 @@ void loop()
 
   // Update clock controller with new frequency
   clockController.setFrequency(frequencyCalculator.getCurrentFrequency());
-
-  // Update clock controller
-  clockController.update();
 
   // Handle manual mode with debouncer (polling)
   bool manualModeReading = digitalRead(2); // D2
@@ -79,9 +73,9 @@ void loop()
       clockController.isManualMode(),
       clockController.getClockState());
 
-  // Debug output every second
+  // Debug output
   static unsigned long lastDebugTime = 0;
-  if (millis() - lastDebugTime > 2000)
+  if (millis() - lastDebugTime > 10000)
   {
     Serial.print("Pot Value: ");
     Serial.print(frequencyCalculator.getPotValue());
