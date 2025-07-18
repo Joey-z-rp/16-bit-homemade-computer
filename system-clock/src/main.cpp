@@ -7,7 +7,7 @@
 ClockController clockController;
 Debouncer manualModeDebouncer(50);
 Debouncer manualTriggerDebouncer(50);
-FrequencyCalculator frequencyCalculator(A0, 1.0, 10000000.0);
+FrequencyCalculator frequencyCalculator(FrequencyCalculator::DEFAULT_POT_PIN, 1.0, 10000000.0);
 
 void setup()
 {
@@ -70,10 +70,12 @@ void loop()
   {
     Serial.print("Pot Value: ");
     Serial.print(frequencyCalculator.getPotValue());
-    Serial.print(", Frequency: ");
+    Serial.print(", Requested: ");
     Serial.print(frequencyCalculator.getCurrentFrequency());
+    Serial.print(" Hz, Actual: ");
+    Serial.print(clockController.getCurrentFrequency());
     Serial.print(" Hz, Period: ");
-    Serial.print(frequencyCalculator.getCurrentPeriod());
+    Serial.print(clockController.getCurrentPeriod());
     Serial.print(" us, Manual Mode: ");
     Serial.println(clockController.isManualMode() ? "ON" : "OFF");
     lastDebugTime = millis();

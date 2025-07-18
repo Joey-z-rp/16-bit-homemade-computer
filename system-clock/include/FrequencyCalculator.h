@@ -6,6 +6,9 @@
 class FrequencyCalculator
 {
 public:
+  // Pin definitions
+  static const int DEFAULT_POT_PIN = A0; // Default potentiometer pin
+
   // Constructor
   FrequencyCalculator(int potPin, float minFreq = 1.0, float maxFreq = 10000000.0);
 
@@ -20,6 +23,7 @@ public:
   // Configuration
   void setFrequencyRange(float minFreq, float maxFreq);
   void setPotPin(int pin);
+  void setDebounceThreshold(int threshold);
 
   // Calculate period from frequency
   static unsigned long calculatePeriod(float frequency);
@@ -34,6 +38,8 @@ private:
   float currentFrequency;
   unsigned long currentPeriod;
   int currentPotValue;
+  int lastPotValue;
+  int debounceThreshold;
 
   // Logarithmic scaling parameters
   float logMinFreq;

@@ -5,6 +5,8 @@ ClockController::ClockController()
   clockState = false;
   manualMode = false;
   currentFrequency = 1.0;
+  requestedFrequency = 1.0;
+  lastConfiguredFrequency = 0.0; // Initialize to 0 to force first configuration
   manualTriggerPressed = false;
   currentPeriod = 1000000; // Default 1Hz period
 }
@@ -111,28 +113,31 @@ bool ClockController::getClockState() const
 
 void ClockController::setFrequency(float frequency)
 {
-  currentFrequency = frequency;
-  currentPeriod = calculatePeriod(frequency);
-
-  // Ensure minimum period for stability
-  if (currentPeriod < 1)
-    currentPeriod = 1;
-
-  // Update PWM with new frequency
-  if (!manualMode)
+  // Only update if requested frequency has actually changed
+  if (abs(frequency - requestedFrequency) > 0.01) // Small tolerance for floating point comparison
   {
-    updatePWM();
+    requestedFrequency = frequency;
+
+    // Update PWM with new frequency only if not in manual mode
+    if (!manualMode)
+    {
+      updatePWM();
+    }
   }
 }
 
 void ClockController::setPeriod(unsigned long period)
 {
-  currentPeriod = period;
-  currentFrequency = 1000000.0 / period;
-
-  if (!manualMode)
+  // Only update if period has actually changed
+  if (period != currentPeriod)
   {
-    updatePWM();
+    currentPeriod = period;
+    currentFrequency = 1000000.0 / period;
+
+    if (!manualMode)
+    {
+      updatePWM();
+    }
   }
 }
 
@@ -158,31 +163,48 @@ void ClockController::setupPWM()
   // Calculate PWM values for desired frequency
   unsigned long pwmTop;
   unsigned char prescaler;
+  float actualFrequency;
 
   // Calculate the best prescaler and top value for the frequency
-  if (currentFrequency > 1000000)
+  if (requestedFrequency > 1000000)
   {
     // High frequency: no prescaler
-    prescaler = (1 << CS10);                    // No prescaler
-    pwmTop = 16000000 / (2 * currentFrequency); // 16MHz clock
+    prescaler = (1 << CS10);                      // No prescaler
+    pwmTop = 16000000 / (2 * requestedFrequency); // 16MHz clock
+    actualFrequency = 16000000.0 / (2.0 * pwmTop);
   }
-  else if (currentFrequency > 100000)
+  else if (requestedFrequency > 100000)
   {
     // Medium frequency: prescaler 8
-    prescaler = (1 << CS11);                   // Prescaler 8
-    pwmTop = 2000000 / (2 * currentFrequency); // 2MHz with prescaler 8
+    prescaler = (1 << CS11);                     // Prescaler 8
+    pwmTop = 2000000 / (2 * requestedFrequency); // 2MHz with prescaler 8
+    actualFrequency = 2000000.0 / (2.0 * pwmTop);
   }
   else
   {
     // Low frequency: prescaler 64
-    prescaler = (1 << CS11) | (1 << CS10);    // Prescaler 64
-    pwmTop = 250000 / (2 * currentFrequency); // 250kHz with prescaler 64
+    prescaler = (1 << CS11) | (1 << CS10);      // Prescaler 64
+    pwmTop = 250000 / (2 * requestedFrequency); // 250kHz with prescaler 64
+    actualFrequency = 250000.0 / (2.0 * pwmTop);
   }
 
   // Ensure pwmTop is within 16-bit range
   if (pwmTop > 65535)
   {
     pwmTop = 65535;
+    // Recalculate actual frequency with clamped pwmTop
+    if (requestedFrequency > 1000000)
+    {
+      actualFrequency = 16000000.0 / (2.0 * pwmTop);
+    }
+    else if (requestedFrequency > 100000)
+    {
+      actualFrequency = 2000000.0 / (2.0 * pwmTop);
+    }
+    else
+    {
+      actualFrequency = 250000.0 / (2.0 * pwmTop);
+    }
   }
 
   // Set ICR1 as top value for Phase Correct PWM
@@ -197,8 +219,15 @@ void ClockController::setupPWM()
   TCCR1A = (1 << COM1A1) | (1 << WGM11);
   TCCR1B = (1 << WGM13) | prescaler;
 
-  Serial.print("PWM started - Frequency: ");
-  Serial.print(currentFrequency);
+  // Update the actual frequency and period being generated
+  currentFrequency = actualFrequency;
+  currentPeriod = calculatePeriod(actualFrequency);
+  lastConfiguredFrequency = actualFrequency;
+
+  Serial.print("PWM started - Requested: ");
+  Serial.print(requestedFrequency);
+  Serial.print(" Hz, Actual: ");
+  Serial.print(actualFrequency);
   Serial.print(" Hz, Top: ");
   Serial.print(pwmTop);
   Serial.println();
@@ -215,9 +244,10 @@ void ClockController::stopPWM()
 
 void ClockController::updatePWM()
 {
-  // Reconfigure PWM with new frequency
-  if (!manualMode)
+  // Only reconfigure PWM if requested frequency has changed since last configuration
+  if (abs(requestedFrequency - lastConfiguredFrequency) > 0.01) // Small tolerance for floating point comparison
   {
     setupPWM();
+    // Note: setupPWM() now updates lastConfiguredFrequency internally
   }
 }

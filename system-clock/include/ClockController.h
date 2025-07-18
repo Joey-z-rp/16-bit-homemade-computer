@@ -54,8 +54,10 @@ private:
   volatile bool manualTriggerPressed;
 
   // Frequency calculation
-  float currentFrequency;
-  unsigned long currentPeriod;
+  float currentFrequency;        // Actual frequency being generated
+  unsigned long currentPeriod;   // Actual period being generated
+  float requestedFrequency;      // Requested frequency from setFrequency()
+  float lastConfiguredFrequency; // Track last frequency used for PWM configuration
 
   // Private methods
   unsigned long calculatePeriod(float frequency);

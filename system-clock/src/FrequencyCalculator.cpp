@@ -8,6 +8,8 @@ FrequencyCalculator::FrequencyCalculator(int potPin, float minFreq, float maxFre
   this->currentFrequency = minFreq;
   this->currentPeriod = calculatePeriod(minFreq);
   this->currentPotValue = 0;
+  this->lastPotValue = 0;
+  this->debounceThreshold = 5;
 
   // Initialize logarithmic scaling parameters
   logMinFreq = log10(minFreq);
@@ -18,17 +20,24 @@ FrequencyCalculator::FrequencyCalculator(int potPin, float minFreq, float maxFre
 float FrequencyCalculator::updateFrequency()
 {
   // Read potentiometer value (0-1023)
-  currentPotValue = analogRead(potPin);
+  int newPotValue = analogRead(potPin);
 
-  // Calculate frequency using logarithmic scale
-  currentFrequency = calculateFrequency(currentPotValue);
+  // Check if the change is significant enough to update frequency
+  if (abs(newPotValue - lastPotValue) >= debounceThreshold)
+  {
+    currentPotValue = newPotValue;
+    lastPotValue = newPotValue;
 
-  // Calculate period in microseconds
-  currentPeriod = calculatePeriod(currentFrequency);
+    // Calculate frequency using logarithmic scale
+    currentFrequency = calculateFrequency(currentPotValue);
 
-  // Ensure minimum period for stability
-  if (currentPeriod < 1)
-    currentPeriod = 1;
+    // Calculate period in microseconds
+    currentPeriod = calculatePeriod(currentFrequency);
+
+    // Ensure minimum period for stability
+    if (currentPeriod < 1)
+      currentPeriod = 1;
+  }
 
   return currentFrequency;
 }
@@ -62,6 +71,11 @@ void FrequencyCalculator::setFrequencyRange(float minFreq, float maxFreq)
 void FrequencyCalculator::setPotPin(int pin)
 {
   potPin = pin;
+}
+
+void FrequencyCalculator::setDebounceThreshold(int threshold)
+{
+  debounceThreshold = threshold;
 }
 
 unsigned long FrequencyCalculator::calculatePeriod(float frequency)
