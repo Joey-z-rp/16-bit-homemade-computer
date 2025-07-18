@@ -31,12 +31,12 @@ public:
 
   // Getters
   float getCurrentFrequency() const;
-  unsigned long getCurrentPeriod() const;
+  unsigned long getCurrentPeriod() const; // Returns period in nanoseconds
   bool getClockState() const;
 
   // Setters for modular design
   void setFrequency(float frequency);
-  void setPeriod(unsigned long period);
+  void setPeriod(unsigned long period); // Expects period in nanoseconds
 
   // Configuration
   static const unsigned long MIN_FREQ = 1;        // 1 Hz
@@ -55,12 +55,12 @@ private:
 
   // Frequency calculation
   float currentFrequency;        // Actual frequency being generated
-  unsigned long currentPeriod;   // Actual period being generated
+  unsigned long currentPeriod;   // Actual period being generated (in nanoseconds)
   float requestedFrequency;      // Requested frequency from setFrequency()
   float lastConfiguredFrequency; // Track last frequency used for PWM configuration
 
   // Private methods
-  unsigned long calculatePeriod(float frequency);
+  unsigned long calculatePeriod(float frequency); // Returns period in nanoseconds
   void setupPWM();
   void stopPWM();
   void updatePWM();

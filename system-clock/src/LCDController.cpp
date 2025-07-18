@@ -168,24 +168,30 @@ String LCDController::formatPeriod(unsigned long period)
 {
   String result = "P:";
 
-  // period is in microseconds from ClockController
-  if (period >= 1000000)
+  // period is now in nanoseconds from ClockController
+  if (period >= 1000000000)
   {
     // Display in seconds
-    result += String(period / 1000000.0, 3);
+    result += String(period / 1000000000.0, 3);
     result += "s";
+  }
+  else if (period >= 1000000)
+  {
+    // Display in milliseconds
+    result += String(period / 1000000.0, 3);
+    result += "ms";
   }
   else if (period >= 1000)
   {
-    // Display in milliseconds
+    // Display in microseconds
     result += String(period / 1000.0, 1);
-    result += "ms";
+    result += "us";
   }
   else
   {
-    // Display in microseconds
+    // Display in nanoseconds
     result += String(period);
-    result += "us";
+    result += "ns";
   }
 
   return result;

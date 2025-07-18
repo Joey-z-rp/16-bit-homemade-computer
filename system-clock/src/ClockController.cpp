@@ -8,7 +8,7 @@ ClockController::ClockController()
   requestedFrequency = 1.0;
   lastConfiguredFrequency = 0.0; // Initialize to 0 to force first configuration
   manualTriggerPressed = false;
-  currentPeriod = 1000000; // Default 1Hz period
+  currentPeriod = 1000000000; // Default 1Hz period in nanoseconds
 }
 
 void ClockController::setupPins()
@@ -104,7 +104,7 @@ float ClockController::getCurrentFrequency() const
 
 unsigned long ClockController::getCurrentPeriod() const
 {
-  return currentPeriod;
+  return currentPeriod; // Returns period in nanoseconds
 }
 
 bool ClockController::getClockState() const
@@ -132,8 +132,8 @@ void ClockController::setPeriod(unsigned long period)
   // Only update if period has actually changed
   if (period != currentPeriod)
   {
-    currentPeriod = period;
-    currentFrequency = 1000000.0 / period;
+    currentPeriod = period;                   // period is in nanoseconds
+    currentFrequency = 1000000000.0 / period; // Convert nanoseconds to frequency
 
     if (!manualMode)
     {
@@ -144,7 +144,7 @@ void ClockController::setPeriod(unsigned long period)
 
 unsigned long ClockController::calculatePeriod(float frequency)
 {
-  return (unsigned long)(1000000.0 / frequency);
+  return (unsigned long)(1000000000.0 / frequency); // Returns period in nanoseconds
 }
 
 void ClockController::setupPWM()
@@ -254,7 +254,7 @@ void ClockController::setupPWM()
 
   // Update the actual frequency and period being generated
   currentFrequency = actualFrequency;
-  currentPeriod = calculatePeriod(actualFrequency);
+  currentPeriod = calculatePeriod(actualFrequency); // Now returns nanoseconds
   lastConfiguredFrequency = actualFrequency;
 
   Serial.print("PWM started - Requested: ");
