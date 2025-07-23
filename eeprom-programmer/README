@@ -1,1 +1,100 @@
-This is a EEPROM programmer for 28C256
+# EEPROM Programmer for 28C256
+
+This is an EEPROM programmer for the 28C256 chip using an Arduino Nano and 74LS595 shift registers to handle the address lines.
+
+## Hardware Requirements
+
+- Arduino Nano
+- 28C256 EEPROM chip
+- 2x 74LS595 shift registers (for 15 address lines)
+- Breadboard and jumper wires
+- 5V power supply
+
+## Pin Connections
+
+### Arduino Nano to 74LS595 Shift Registers
+
+| Arduino Pin | 74LS595 Pin          | Function                     |
+| ----------- | -------------------- | ---------------------------- |
+| D2          | DS (Data Serial)     | Data input to shift register |
+| D3          | SHCP (Shift Clock)   | Shift register clock         |
+| D4          | STCP (Storage Clock) | Storage register clock       |
+
+### 74LS595 to 28C256 Address Lines
+
+| 74LS595 Q0-Q7 | 28C256 Pin | Address Line  |
+| ------------- | ---------- | ------------- |
+| Q0            | A0         | Address bit 0 |
+| Q1            | A1         | Address bit 1 |
+| Q2            | A2         | Address bit 2 |
+| Q3            | A3         | Address bit 3 |
+| Q4            | A4         | Address bit 4 |
+| Q5            | A5         | Address bit 5 |
+| Q6            | A6         | Address bit 6 |
+| Q7            | A7         | Address bit 7 |
+
+Second 74LS595:
+| 74LS595 Q0-Q6 | 28C256 Pin | Address Line |
+|----------------|------------|--------------|
+| Q0 | A8 | Address bit 8 |
+| Q1 | A9 | Address bit 9 |
+| Q2 | A10 | Address bit 10 |
+| Q3 | A11 | Address bit 11 |
+| Q4 | A12 | Address bit 12 |
+| Q5 | A13 | Address bit 13 |
+| Q6 | A14 | Address bit 14 |
+
+### Arduino Nano to 28C256 Control Lines
+
+| Arduino Pin | 28C256 Pin         | Function                   |
+| ----------- | ------------------ | -------------------------- |
+| A3          | WE (Write Enable)  | Write enable (active low)  |
+| A4          | OE (Output Enable) | Output enable (active low) |
+| A5          | CE (Chip Enable)   | Chip enable (active low)   |
+
+### Arduino Nano to 28C256 Data Lines
+
+| Arduino Pin | 28C256 Pin | Data Line  |
+| ----------- | ---------- | ---------- |
+| D5          | D0         | Data bit 0 |
+| D6          | D1         | Data bit 1 |
+| D7          | D2         | Data bit 2 |
+| D8          | D3         | Data bit 3 |
+| D9          | D4         | Data bit 4 |
+| D10         | D5         | Data bit 5 |
+| D11         | D6         | Data bit 6 |
+| D12         | D7         | Data bit 7 |
+
+### Power Connections
+
+| Component    | VCC | GND |
+| ------------ | --- | --- |
+| Arduino Nano | 5V  | GND |
+| 74LS595 #1   | 5V  | GND |
+| 74LS595 #2   | 5V  | GND |
+| 28C256       | 5V  | GND |
+
+## Shift Register Configuration
+
+The two 74LS595 shift registers are connected in series:
+
+- First shift register handles A0-A7
+- Second shift register handles A8-A14
+- Q7 of first register connects to DS of second register
+
+## Usage
+
+### Direct Programming
+
+The EEPROM programmer is designed to program data directly from the code. To use it:
+
+1. **Edit the program data**: Open `src/main.cpp` and modify the `programData` array with your data
+2. **Upload the code**: Compile and upload to your Arduino Nano
+3. **Automatic programming**: The EEPROM will be programmed automatically on startup
+
+### Configuration
+
+You can modify these settings in `main.cpp`:
+
+- `PROGRAM_START_ADDRESS`: Where to start programming (default: 0x0000)
+- `PROGRAM_SIZE`: Size of your program data
