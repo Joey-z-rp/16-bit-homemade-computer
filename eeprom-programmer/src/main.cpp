@@ -13,35 +13,6 @@ const uint8_t programData[] = {
 const unsigned int PROGRAM_START_ADDRESS = 0x0000; // Start address in EEPROM
 const unsigned int PROGRAM_SIZE = sizeof(programData);
 
-void setup()
-{
-  // Initialize serial communication
-  Serial.begin(56000);
-  Serial.println("EEPROM Programmer Starting...");
-
-  // Initialize the EEPROM programmer
-  programmer.begin();
-
-  // Blink LED to indicate ready
-  programmer.blinkLED(3);
-
-  Serial.println("EEPROM Programmer Ready");
-  Serial.print("Program size: ");
-  Serial.print(PROGRAM_SIZE);
-  Serial.println(" bytes");
-
-  // Start programming process
-  programEEPROM();
-}
-
-void loop()
-{
-  // Main loop - can be used for monitoring or additional functionality
-  // The programming is done in setup(), so this can be empty or used for status updates
-
-  // TODO: Read the data from the EEPROM
-}
-
 void programEEPROM()
 {
   Serial.println("Starting EEPROM programming...");
@@ -61,4 +32,58 @@ void programEEPROM()
 
   Serial.println("SUCCESS: EEPROM programming completed!");
   programmer.blinkLED(5); // Success indicator
+}
+
+void setup()
+{
+  // Initialize serial communication
+  Serial.begin(9600);
+  // Serial.println("EEPROM Programmer Starting...");
+
+  // Initialize the EEPROM programmer
+  programmer.begin();
+
+  // Blink LED to indicate ready
+  // programmer.blinkLED(3);
+
+  Serial.println("EEPROM Programmer Ready");
+  // Serial.print("Program size: ");
+  // Serial.print(PROGRAM_SIZE);
+  // Serial.println(" bytes");
+
+  // Start programming process
+  // programEEPROM();
+  // delay(1);
+
+  // programmer.disableSoftwareDataProtection();
+  // programmer.writeByte(0x1001, 0x13);
+  // delay(100);
+  // digitalWrite(programmer.EEPROM_OE_PIN, LOW);
+  // digitalWrite(programmer.EEPROM_CE_PIN, HIGH);
+  // digitalWrite(programmer.EEPROM_WE_PIN, LOW);
+
+  // Serial.println(programmer.readByte(0x5555));
+  // programmer.dumpMemory(0x0f00, 0x1100);
+  // programmer.setAddress(0x1000);
+  programmer.setDataBusInput();
+
+  digitalWrite(programmer.EEPROM_CE_PIN, LOW);
+  digitalWrite(programmer.EEPROM_OE_PIN, LOW);
+
+  digitalWrite(A0, LOW);
+  // digitalWrite(A1, LOW);
+  delay(1000);
+  // programmer.writeByte(0x1000, 0x0076);
+}
+
+void loop()
+{
+
+  digitalWrite(A0, LOW);
+  Serial.println(programmer.readData(), HEX);
+  digitalWrite(A0, HIGH);
+  Serial.println(programmer.readData(), HEX);
+  Serial.println("--------------------------------");
+
+  delay(500);
 }

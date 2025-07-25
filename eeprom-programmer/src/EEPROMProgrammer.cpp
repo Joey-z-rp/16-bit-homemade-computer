@@ -18,10 +18,8 @@ void EEPROMProgrammer::setDataBusOutput()
 
 void EEPROMProgrammer::setAddress(uint16_t address)
 {
-  digitalWrite(SHIFT_LATCH_PIN, LOW);
-
   // Send 15 address bits (A0-A14)
-  for (int i = 0; i < ADDRESS_BITS; i++)
+  for (int i = ADDRESS_BITS - 1; i >= 0; i--)
   {
     digitalWrite(SHIFT_DATA_PIN, (address >> i) & 0x01);
     digitalWrite(SHIFT_CLOCK_PIN, HIGH);
@@ -29,6 +27,7 @@ void EEPROMProgrammer::setAddress(uint16_t address)
   }
 
   digitalWrite(SHIFT_LATCH_PIN, HIGH);
+  digitalWrite(SHIFT_LATCH_PIN, LOW);
 }
 
 uint8_t EEPROMProgrammer::readData()
@@ -51,6 +50,8 @@ void EEPROMProgrammer::writeData(uint8_t data)
 
 bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
 {
+  // Wait for the minimum write time before checking
+  delayMicroseconds(100);
   setDataBusInput();
   digitalWrite(EEPROM_OE_PIN, LOW);
 
@@ -60,13 +61,12 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
   uint8_t currentData;
   unsigned long startTime = millis();
   int stableCount = 0;
-  const int requiredStableReads = 3; // Need 3 consecutive same reads to confirm completion
+  const int requiredStableReads = 3;
 
   while (millis() - startTime < 1000)
-  { // 1 second timeout
+  {
     currentData = readData();
 
-    // Check if we're reading the expected data (write is complete)
     if (currentData == expectedData)
     {
       stableCount++;
@@ -84,12 +84,20 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
     delayMicroseconds(10);
   }
 
+  // Debug output for timeout
+  Serial.print("Write timeout - expected 0x");
+  Serial.print(expectedData, HEX);
+  Serial.print(", last read 0x");
+  Serial.println(currentData, HEX);
+
   digitalWrite(EEPROM_OE_PIN, HIGH);
   return false;
 }
 
 void EEPROMProgrammer::begin()
 {
+  pinMode(A0, OUTPUT);
+  pinMode(A1, OUTPUT);
   // Initialize shift register pins
   pinMode(SHIFT_DATA_PIN, OUTPUT);
   pinMode(SHIFT_CLOCK_PIN, OUTPUT);
@@ -106,7 +114,7 @@ void EEPROMProgrammer::begin()
   // Set initial states
   digitalWrite(SHIFT_DATA_PIN, LOW);
   digitalWrite(SHIFT_CLOCK_PIN, LOW);
-  digitalWrite(SHIFT_LATCH_PIN, HIGH);
+  digitalWrite(SHIFT_LATCH_PIN, LOW);
   digitalWrite(EEPROM_WE_PIN, HIGH); // Write disabled
   digitalWrite(EEPROM_OE_PIN, HIGH); // Output disabled
   digitalWrite(EEPROM_CE_PIN, HIGH); // Chip disabled
@@ -124,6 +132,7 @@ uint8_t EEPROMProgrammer::readByte(uint16_t address)
   digitalWrite(EEPROM_CE_PIN, LOW);
   digitalWrite(EEPROM_OE_PIN, LOW);
 
+  delayMicroseconds(1);
   uint8_t data = readData();
 
   digitalWrite(EEPROM_OE_PIN, HIGH);
@@ -137,16 +146,38 @@ bool EEPROMProgrammer::writeByte(uint16_t address, uint8_t data)
   if (address >= EEPROM_SIZE)
     return false;
 
-  setAddress(address);
+  digitalWrite(EEPROM_OE_PIN, HIGH);
+  digitalWrite(EEPROM_CE_PIN, LOW);
+
   setDataBusOutput();
+
+  setAddress(address);
   writeData(data);
 
-  digitalWrite(EEPROM_CE_PIN, LOW);
   digitalWrite(EEPROM_WE_PIN, LOW);
+
   delayMicroseconds(1);
   digitalWrite(EEPROM_WE_PIN, HIGH);
 
-  return waitForWriteComplete(data);
+  bool result = waitForWriteComplete(data);
+
+  // Debug output for failed writes
+  if (!result)
+  {
+    Serial.print("Write failed at 0x");
+    Serial.print(address, HEX);
+    Serial.print(" with data 0x");
+    Serial.println(data, HEX);
+  }
+  else
+  {
+    Serial.print("Write successful at 0x");
+    Serial.print(address, HEX);
+    Serial.print(" with data 0x");
+    Serial.println(data, HEX);
+  }
+
+  return result;
 }
 
 bool EEPROMProgrammer::eraseChip()
@@ -246,6 +277,61 @@ void EEPROMProgrammer::dumpMemory(uint16_t startAddress, uint16_t length)
 
     Serial.println();
   }
+}
+
+void EEPROMProgrammer::disableSoftwareDataProtection()
+{
+  // 28C256 Software Data Protection disable sequence
+  // Write 0xAA to address 0x5555
+  // Write 0x55 to address 0x2AAA
+  // Write 0x80 to address 0x5555
+  // Write 0xAA to address 0x5555
+  // Write 0x55 to address 0x2AAA
+  // Write 0x20 to address 0x5555
+
+  Serial.println("Sending SDP disable sequence...");
+  digitalWrite(EEPROM_OE_PIN, HIGH);
+  setDataBusOutput();
+  digitalWrite(EEPROM_CE_PIN, LOW);
+
+  // Step 1: Write 0xAA to address 0x5555
+  setAddress(0x5555);
+  writeData(0xAA);
+  digitalWrite(EEPROM_WE_PIN, LOW);
+  digitalWrite(EEPROM_WE_PIN, HIGH);
+
+  // Step 2: Write 0x55 to address 0x2AAA
+  setAddress(0x2AAA);
+  writeData(0x55);
+  digitalWrite(EEPROM_WE_PIN, LOW);
+  digitalWrite(EEPROM_WE_PIN, HIGH);
+
+  // Step 3: Write 0x80 to address 0x5555
+  setAddress(0x5555);
+  writeData(0x80);
+  digitalWrite(EEPROM_WE_PIN, LOW);
+  digitalWrite(EEPROM_WE_PIN, HIGH);
+
+  // Step 4: Write 0xAA to address 0x5555
+  setAddress(0x5555);
+  writeData(0xAA);
+  digitalWrite(EEPROM_WE_PIN, LOW);
+  digitalWrite(EEPROM_WE_PIN, HIGH);
+
+  // Step 5: Write 0x55 to address 0x2AAA
+  setAddress(0x2AAA);
+  writeData(0x55);
+  digitalWrite(EEPROM_WE_PIN, LOW);
+  digitalWrite(EEPROM_WE_PIN, HIGH);
+
+  // Step 6: Write 0x20 to address 0x5555
+  setAddress(0x5555);
+  writeData(0x20);
+  digitalWrite(EEPROM_WE_PIN, LOW);
+  digitalWrite(EEPROM_WE_PIN, HIGH);
+
+  digitalWrite(EEPROM_CE_PIN, HIGH);
+  Serial.println("SDP disable sequence completed");
 }
 
 void EEPROMProgrammer::blinkLED(int times)

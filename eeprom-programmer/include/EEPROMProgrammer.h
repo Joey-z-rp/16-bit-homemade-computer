@@ -5,7 +5,7 @@
 
 class EEPROMProgrammer
 {
-private:
+public:
   // Pin definitions
   static const int SHIFT_DATA_PIN = 2;  // DS (Data Serial)
   static const int SHIFT_CLOCK_PIN = 3; // SHCP (Shift Register Clock)
@@ -32,7 +32,9 @@ private:
   // Write completion detection
   bool waitForWriteComplete(uint8_t expectedData);
 
-public:
+  // Software data protection
+  void disableSoftwareDataProtection();
+
   void begin();
 
   // Basic operations
