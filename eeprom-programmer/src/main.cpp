@@ -36,44 +36,23 @@ void programEEPROM()
 
 void setup()
 {
-  // Initialize serial communication
   Serial.begin(9600);
-  // Serial.println("EEPROM Programmer Starting...");
 
   // Initialize the EEPROM programmer
   programmer.begin();
 
-  // Blink LED to indicate ready
-  // programmer.blinkLED(3);
-
   Serial.println("EEPROM Programmer Ready");
-  // Serial.print("Program size: ");
-  // Serial.print(PROGRAM_SIZE);
-  // Serial.println(" bytes");
 
-  // Start programming process
   // programEEPROM();
   // delay(1);
 
-  // programmer.disableSoftwareDataProtection();
-  // programmer.writeByte(0x1001, 0x13);
-  // delay(100);
-  // digitalWrite(programmer.EEPROM_OE_PIN, LOW);
-  // digitalWrite(programmer.EEPROM_CE_PIN, HIGH);
-  // digitalWrite(programmer.EEPROM_WE_PIN, LOW);
-
-  // Serial.println(programmer.readByte(0x5555));
-  // programmer.dumpMemory(0x0f00, 0x1100);
-  // programmer.setAddress(0x1000);
   programmer.setDataBusInput();
 
   digitalWrite(programmer.EEPROM_CE_PIN, LOW);
   digitalWrite(programmer.EEPROM_OE_PIN, LOW);
 
   digitalWrite(A0, LOW);
-  // digitalWrite(A1, LOW);
   delay(1000);
-  // programmer.writeByte(0x1000, 0x0076);
 }
 
 void loop()
