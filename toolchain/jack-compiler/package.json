@@ -1,0 +1,14 @@
+{
+  "name": "jack-analyzer",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "cli.ts",
+  "scripts": {
+    "start": "ts-node cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.0.0"
+  }
+}
