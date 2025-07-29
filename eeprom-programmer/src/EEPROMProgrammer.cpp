@@ -18,16 +18,18 @@ void EEPROMProgrammer::setDataBusOutput()
 
 void EEPROMProgrammer::setAddress(uint16_t address)
 {
-  // Send 15 address bits (A0-A14)
-  for (int i = ADDRESS_BITS - 1; i >= 0; i--)
-  {
-    digitalWrite(SHIFT_DATA_PIN, (address >> i) & 0x01);
-    digitalWrite(SHIFT_CLOCK_PIN, HIGH);
-    digitalWrite(SHIFT_CLOCK_PIN, LOW);
-  }
+  // Only A0-A4 are programmable (connected to Arduino pins)
+  // A5-A14 are connected to ground, so only addresses 0x0000-0x001F are accessible
 
-  digitalWrite(SHIFT_LATCH_PIN, HIGH);
-  digitalWrite(SHIFT_LATCH_PIN, LOW);
+  // Set A0-A4 using direct pins
+  digitalWrite(ADDRESS_PIN_A0, (address >> 0) & 0x01);
+  digitalWrite(ADDRESS_PIN_A1, (address >> 1) & 0x01);
+  digitalWrite(ADDRESS_PIN_A2, (address >> 2) & 0x01);
+  digitalWrite(ADDRESS_PIN_A3, (address >> 3) & 0x01);
+  digitalWrite(ADDRESS_PIN_A4, (address >> 4) & 0x01);
+
+  // A5-A14 are connected to ground (always 0)
+  // This means only addresses 0x0000-0x001F (32 bytes) are accessible
 }
 
 uint8_t EEPROMProgrammer::readData()
@@ -96,12 +98,12 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
 
 void EEPROMProgrammer::begin()
 {
-  pinMode(A0, OUTPUT);
-  pinMode(A1, OUTPUT);
-  // Initialize shift register pins
-  pinMode(SHIFT_DATA_PIN, OUTPUT);
-  pinMode(SHIFT_CLOCK_PIN, OUTPUT);
-  pinMode(SHIFT_LATCH_PIN, OUTPUT);
+  // Initialize direct address pins A0-A4
+  pinMode(ADDRESS_PIN_A0, OUTPUT);
+  pinMode(ADDRESS_PIN_A1, OUTPUT);
+  pinMode(ADDRESS_PIN_A2, OUTPUT);
+  pinMode(ADDRESS_PIN_A3, OUTPUT);
+  pinMode(ADDRESS_PIN_A4, OUTPUT);
 
   // Initialize EEPROM control pins
   pinMode(EEPROM_WE_PIN, OUTPUT);
@@ -112,9 +114,11 @@ void EEPROMProgrammer::begin()
   pinMode(STATUS_LED_PIN, OUTPUT);
 
   // Set initial states
-  digitalWrite(SHIFT_DATA_PIN, LOW);
-  digitalWrite(SHIFT_CLOCK_PIN, LOW);
-  digitalWrite(SHIFT_LATCH_PIN, LOW);
+  digitalWrite(ADDRESS_PIN_A0, LOW);
+  digitalWrite(ADDRESS_PIN_A1, LOW);
+  digitalWrite(ADDRESS_PIN_A2, LOW);
+  digitalWrite(ADDRESS_PIN_A3, LOW);
+  digitalWrite(ADDRESS_PIN_A4, LOW);
   digitalWrite(EEPROM_WE_PIN, HIGH); // Write disabled
   digitalWrite(EEPROM_OE_PIN, HIGH); // Output disabled
   digitalWrite(EEPROM_CE_PIN, HIGH); // Chip disabled
@@ -123,7 +127,8 @@ void EEPROMProgrammer::begin()
 
 uint8_t EEPROMProgrammer::readByte(uint16_t address)
 {
-  if (address >= EEPROM_SIZE)
+  // Only addresses 0x0000-0x001F are accessible (A0-A4 programmable, A5-A14 grounded)
+  if (address >= 32)
     return 0xFF;
 
   setAddress(address);
@@ -143,7 +148,8 @@ uint8_t EEPROMProgrammer::readByte(uint16_t address)
 
 bool EEPROMProgrammer::writeByte(uint16_t address, uint8_t data)
 {
-  if (address >= EEPROM_SIZE)
+  // Only addresses 0x0000-0x001F are accessible (A0-A4 programmable, A5-A14 grounded)
+  if (address >= 32)
     return false;
 
   digitalWrite(EEPROM_OE_PIN, HIGH);
@@ -182,9 +188,9 @@ bool EEPROMProgrammer::writeByte(uint16_t address, uint8_t data)
 
 bool EEPROMProgrammer::eraseChip()
 {
-  Serial.println("Erasing EEPROM...");
+  Serial.println("Erasing accessible EEPROM addresses (0x0000-0x001F)...");
 
-  for (uint16_t address = 0; address < EEPROM_SIZE; address++)
+  for (uint16_t address = 0; address < 32; address++)
   {
     if (!writeByte(address, 0xFF))
     {
@@ -193,7 +199,7 @@ bool EEPROMProgrammer::eraseChip()
       return false;
     }
 
-    if (address % 1024 == 0)
+    if (address % 8 == 0)
     {
       Serial.print("Erased ");
       Serial.print(address);
@@ -207,6 +213,13 @@ bool EEPROMProgrammer::eraseChip()
 
 bool EEPROMProgrammer::writeDataBlock(uint16_t startAddress, const uint8_t *data, uint16_t length)
 {
+  // Check if the data block fits within the accessible address range (0x0000-0x001F)
+  if (startAddress >= 32 || startAddress + length > 32)
+  {
+    Serial.println("Error: Data block exceeds accessible address range (0x0000-0x001F)");
+    return false;
+  }
+
   Serial.println("Writing data block...");
 
   for (uint16_t i = 0; i < length; i++)
@@ -218,7 +231,7 @@ bool EEPROMProgrammer::writeDataBlock(uint16_t startAddress, const uint8_t *data
       return false;
     }
 
-    if (i % 256 == 0)
+    if (i % 8 == 0)
     {
       Serial.print("Written ");
       Serial.print(i);
@@ -232,6 +245,13 @@ bool EEPROMProgrammer::writeDataBlock(uint16_t startAddress, const uint8_t *data
 
 bool EEPROMProgrammer::verifyData(uint16_t startAddress, const uint8_t *data, uint16_t length)
 {
+  // Check if the verification range fits within the accessible address range (0x0000-0x001F)
+  if (startAddress >= 32 || startAddress + length > 32)
+  {
+    Serial.println("Error: Verification range exceeds accessible address range (0x0000-0x001F)");
+    return false;
+  }
+
   Serial.println("Verifying data...");
 
   for (uint16_t i = 0; i < length; i++)
@@ -255,6 +275,13 @@ bool EEPROMProgrammer::verifyData(uint16_t startAddress, const uint8_t *data, ui
 
 void EEPROMProgrammer::dumpMemory(uint16_t startAddress, uint16_t length)
 {
+  // Check if the dump range fits within the accessible address range (0x0000-0x001F)
+  if (startAddress >= 32 || startAddress + length > 32)
+  {
+    Serial.println("Error: Dump range exceeds accessible address range (0x0000-0x001F)");
+    return;
+  }
+
   Serial.println("Memory dump:");
 
   for (uint16_t addr = startAddress; addr < startAddress + length; addr += 16)

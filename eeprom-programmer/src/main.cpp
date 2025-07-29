@@ -5,9 +5,39 @@
 EEPROMProgrammer programmer;
 
 const uint8_t programData[] = {
-    0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA,
-    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-    0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, 0xF8};
+    0x00,
+    0xEA,
+    0x00,
+    0xEF,
+    0x00,
+    0xFC,
+    0x00,
+    0xE4,
+    0x00,
+    0xE3,
+    0x00,
+    0xFC,
+    0x00,
+    0xF0,
+    0x00,
+    0xFD,
+    0x00,
+    0xEA,
+    0x00,
+    0xEA,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+};
 
 // Program configuration
 const unsigned int PROGRAM_START_ADDRESS = 0x0000; // Start address in EEPROM
@@ -44,25 +74,18 @@ void setup()
   Serial.println("EEPROM Programmer Ready");
 
   // programEEPROM();
-  // delay(1);
+  delay(1000);
 
   programmer.setDataBusInput();
 
   digitalWrite(programmer.EEPROM_CE_PIN, LOW);
   digitalWrite(programmer.EEPROM_OE_PIN, LOW);
 
-  digitalWrite(A0, LOW);
-  delay(1000);
+  programmer.dumpMemory(0x0000, 0x001F);
 }
 
 void loop()
 {
-
-  digitalWrite(A0, LOW);
-  Serial.println(programmer.readData(), HEX);
-  digitalWrite(A0, HIGH);
-  Serial.println(programmer.readData(), HEX);
-  Serial.println("--------------------------------");
 
   delay(500);
 }

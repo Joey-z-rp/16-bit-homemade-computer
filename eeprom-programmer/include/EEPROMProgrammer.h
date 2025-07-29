@@ -6,19 +6,24 @@
 class EEPROMProgrammer
 {
 public:
-  // Pin definitions
-  static const int SHIFT_DATA_PIN = 2;  // DS (Data Serial)
-  static const int SHIFT_CLOCK_PIN = 3; // SHCP (Shift Register Clock)
-  static const int SHIFT_LATCH_PIN = 4; // STCP (Storage Register Clock)
+  // Pin definitions - Direct address pins A0-A4
+  static const int ADDRESS_PIN_A0 = A0; // A0
+  static const int ADDRESS_PIN_A1 = A1; // A1
+  static const int ADDRESS_PIN_A2 = A2; // A2
+  static const int ADDRESS_PIN_A3 = A3; // A3
+  static const int ADDRESS_PIN_A4 = A4; // A4
+  // A5-A14 are connected to ground (not programmable)
+
   static const int DATA_PINS_START = 5; // D0 starts at pin 5 (D5-D12)
-  static const int EEPROM_WE_PIN = A3;  // Write Enable (active low)
-  static const int EEPROM_OE_PIN = A4;  // Output Enable (active low)
-  static const int EEPROM_CE_PIN = A5;  // Chip Enable (active low)
+  static const int EEPROM_WE_PIN = 2;   // Write Enable (active low)
+  static const int EEPROM_OE_PIN = 3;   // Output Enable (active low)
+  static const int EEPROM_CE_PIN = 4;   // Chip Enable (active low)
   static const int STATUS_LED_PIN = 13; // Built-in LED on pin 13
 
   // EEPROM specifications
-  static const uint16_t EEPROM_SIZE = 32768; // 32KB = 32768 bytes
-  static const int ADDRESS_BITS = 15;        // 15 address lines (A0-A14)
+  static const uint16_t EEPROM_SIZE = 32768;      // 32KB = 32768 bytes
+  static const int ADDRESS_BITS = 15;             // 15 address lines (A0-A14)
+  static const int PROGRAMMABLE_ADDRESS_BITS = 5; // Only A0-A4 are programmable
 
   // Data bus direction control
   void setDataBusInput();
