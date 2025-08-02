@@ -5,3 +5,8 @@
 */.vscode/ipch
 node_modules
 .DS_Store
+**/quartus/simulation/
+**/quartus/db
+**/greybox_tmp
+**/quartus/incremental_db
+**/quartus/output_files
