@@ -3,7 +3,7 @@
 ClockController::ClockController()
 {
   clockState = false;
-  manualMode = false;
+  manualMode = true;
   currentFrequency = 1.0;
   requestedFrequency = 1.0;
   manualTriggerPressed = false;
@@ -18,7 +18,7 @@ void ClockController::setupPins()
 
   // Setup clock output pin (Timer1 OC1A)
   pinMode(CLOCK_OUT_PIN, OUTPUT);
-  digitalWrite(CLOCK_OUT_PIN, HIGH); // Start with HIGH output
+  digitalWrite(CLOCK_OUT_PIN, HIGH); // Start with HIGH (the actual clock output is inverted by the hardware so it starts with low clock)
   clockState = true;                 // Initialize clock state to HIGH
 }
 
