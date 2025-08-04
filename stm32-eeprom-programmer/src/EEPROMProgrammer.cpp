@@ -6,6 +6,7 @@ EEPROMProgrammer::EEPROMProgrammer()
   addressPortA = GPIOA;
   addressPortB = GPIOB;
   dataPort = GPIOB;
+  dataPortC = GPIOC; // For D2 which is now on PC15
   controlPort = GPIOA;
   ledPort = GPIOC;
 
@@ -51,7 +52,7 @@ void EEPROMProgrammer::configureGPIO()
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(addressPortA, &GPIO_InitStruct);
 
-  // Configure address pins A10-A14 (PB2-PB6) as outputs
+  // Configure address pins A10-A14 as outputs
   GPIO_InitStruct.Pin = ADDRESS_PIN_A10 | ADDRESS_PIN_A11 | ADDRESS_PIN_A12 |
                         ADDRESS_PIN_A13 | ADDRESS_PIN_A14;
   HAL_GPIO_Init(addressPortB, &GPIO_InitStruct);
@@ -76,10 +77,14 @@ void EEPROMProgrammer::setDataBusInput()
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 
-  // Configure all data pins as inputs
-  GPIO_InitStruct.Pin = DATA_PIN_D0 | DATA_PIN_D1 | DATA_PIN_D2 | DATA_PIN_D3 |
+  // Configure data pins D0-D1, D3-D7 on GPIOB as inputs
+  GPIO_InitStruct.Pin = DATA_PIN_D0 | DATA_PIN_D1 | DATA_PIN_D3 |
                         DATA_PIN_D4 | DATA_PIN_D5 | DATA_PIN_D6 | DATA_PIN_D7;
   HAL_GPIO_Init(dataPort, &GPIO_InitStruct);
+
+  // Configure data pin D2 on GPIOC as input
+  GPIO_InitStruct.Pin = DATA_PIN_D2;
+  HAL_GPIO_Init(dataPortC, &GPIO_InitStruct);
 }
 
 void EEPROMProgrammer::setDataBusOutput()
@@ -89,10 +94,14 @@ void EEPROMProgrammer::setDataBusOutput()
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 
-  // Configure all data pins as outputs
-  GPIO_InitStruct.Pin = DATA_PIN_D0 | DATA_PIN_D1 | DATA_PIN_D2 | DATA_PIN_D3 |
+  // Configure data pins D0-D1, D3-D7 on GPIOB as outputs
+  GPIO_InitStruct.Pin = DATA_PIN_D0 | DATA_PIN_D1 | DATA_PIN_D3 |
                         DATA_PIN_D4 | DATA_PIN_D5 | DATA_PIN_D6 | DATA_PIN_D7;
   HAL_GPIO_Init(dataPort, &GPIO_InitStruct);
+
+  // Configure data pin D2 on GPIOC as output
+  GPIO_InitStruct.Pin = DATA_PIN_D2;
+  HAL_GPIO_Init(dataPortC, &GPIO_InitStruct);
 }
 
 void EEPROMProgrammer::setAddress(uint16_t address)
@@ -187,7 +196,7 @@ uint8_t EEPROMProgrammer::readData()
     data |= 0x01;
   if (readPin(dataPort, DATA_PIN_D1))
     data |= 0x02;
-  if (readPin(dataPort, DATA_PIN_D2))
+  if (readPin(dataPortC, DATA_PIN_D2))
     data |= 0x04;
   if (readPin(dataPort, DATA_PIN_D3))
     data |= 0x08;
@@ -217,9 +226,9 @@ void EEPROMProgrammer::writeData(uint8_t data)
     setPinLow(dataPort, DATA_PIN_D1);
 
   if (data & 0x04)
-    setPinHigh(dataPort, DATA_PIN_D2);
+    setPinHigh(dataPortC, DATA_PIN_D2);
   else
-    setPinLow(dataPort, DATA_PIN_D2);
+    setPinLow(dataPortC, DATA_PIN_D2);
 
   if (data & 0x08)
     setPinHigh(dataPort, DATA_PIN_D3);
@@ -251,7 +260,7 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
 {
   // Wait for the minimum write time before checking
   volatile uint32_t delay_count;
-  for (delay_count = 0; delay_count < 1000; delay_count++)
+  for (delay_count = 0; delay_count < 100; delay_count++)
   {
   }
 
@@ -265,7 +274,7 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
   int stableCount = 0;
   const int requiredStableReads = 3;
 
-  for (int i = 0; i < 10000; i++) // Timeout after ~100ms
+  for (int i = 0; i < 100; i++) // Timeout after ~100ms
   {
     currentData = readData();
 
@@ -284,7 +293,7 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
     }
 
     // Small delay between reads
-    for (delay_count = 0; delay_count < 10; delay_count++)
+    for (delay_count = 0; delay_count < 100; delay_count++)
     {
     }
   }
@@ -295,33 +304,44 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
 
 void EEPROMProgrammer::disableSoftwareDataProtection()
 {
-  // Write the software data protection disable sequence
+  setPinHigh(controlPort, EEPROM_WE_PIN);
   setPinLow(controlPort, EEPROM_CE_PIN);
-  setPinLow(controlPort, EEPROM_WE_PIN);
 
   setAddress(0x5555);
   writeData(0xAA);
 
-  setPinHigh(controlPort, EEPROM_WE_PIN);
-  setPinHigh(controlPort, EEPROM_CE_PIN);
-
-  setPinLow(controlPort, EEPROM_CE_PIN);
   setPinLow(controlPort, EEPROM_WE_PIN);
+  setPinHigh(controlPort, EEPROM_WE_PIN);
 
   setAddress(0x2AAA);
   writeData(0x55);
 
-  setPinHigh(controlPort, EEPROM_WE_PIN);
-  setPinHigh(controlPort, EEPROM_CE_PIN);
-
-  setPinLow(controlPort, EEPROM_CE_PIN);
   setPinLow(controlPort, EEPROM_WE_PIN);
+  setPinHigh(controlPort, EEPROM_WE_PIN);
 
   setAddress(0x5555);
   writeData(0x80);
 
+  setPinLow(controlPort, EEPROM_WE_PIN);
   setPinHigh(controlPort, EEPROM_WE_PIN);
-  setPinHigh(controlPort, EEPROM_CE_PIN);
+
+  setAddress(0x5555);
+  writeData(0xAA);
+
+  setPinLow(controlPort, EEPROM_WE_PIN);
+  setPinHigh(controlPort, EEPROM_WE_PIN);
+
+  setAddress(0x2AAA);
+  writeData(0x55);
+
+  setPinLow(controlPort, EEPROM_WE_PIN);
+  setPinHigh(controlPort, EEPROM_WE_PIN);
+
+  setAddress(0x5555);
+  writeData(0x20);
+
+  setPinLow(controlPort, EEPROM_WE_PIN);
+  setPinHigh(controlPort, EEPROM_WE_PIN);
 }
 
 uint8_t EEPROMProgrammer::readByte(uint16_t address)
@@ -342,68 +362,26 @@ uint8_t EEPROMProgrammer::readByte(uint16_t address)
 
 bool EEPROMProgrammer::writeByte(uint16_t address, uint8_t data)
 {
-  // Disable software data protection first
-  disableSoftwareDataProtection();
+  setDataBusOutput();
+  setPinLow(controlPort, EEPROM_CE_PIN);
+
+  // disableSoftwareDataProtection();
 
   setAddress(address);
-  setDataBusOutput();
   writeData(data);
 
-  setPinLow(controlPort, EEPROM_CE_PIN);
   setPinLow(controlPort, EEPROM_WE_PIN);
-
-  // Small delay for write pulse
-  volatile uint32_t delay_count;
-  for (delay_count = 0; delay_count < 100; delay_count++)
-  {
-  }
-
   setPinHigh(controlPort, EEPROM_WE_PIN);
-  setPinHigh(controlPort, EEPROM_CE_PIN);
 
   // Wait for write completion
-  return waitForWriteComplete(data);
-}
+  bool success = waitForWriteComplete(data);
 
-bool EEPROMProgrammer::eraseChip()
-{
-  // Disable software data protection
-  disableSoftwareDataProtection();
-
-  setPinLow(controlPort, EEPROM_CE_PIN);
-  setPinLow(controlPort, EEPROM_WE_PIN);
-
-  setAddress(0x5555);
-  writeData(0xAA);
-
-  setPinHigh(controlPort, EEPROM_WE_PIN);
-  setPinHigh(controlPort, EEPROM_CE_PIN);
-
-  setPinLow(controlPort, EEPROM_CE_PIN);
-  setPinLow(controlPort, EEPROM_WE_PIN);
-
-  setAddress(0x2AAA);
-  writeData(0x55);
-
-  setPinHigh(controlPort, EEPROM_WE_PIN);
-  setPinHigh(controlPort, EEPROM_CE_PIN);
-
-  setPinLow(controlPort, EEPROM_CE_PIN);
-  setPinLow(controlPort, EEPROM_WE_PIN);
-
-  setAddress(0x5555);
-  writeData(0x10);
-
-  setPinHigh(controlPort, EEPROM_WE_PIN);
-  setPinHigh(controlPort, EEPROM_CE_PIN);
-
-  // Wait for erase completion (can take up to 10 seconds)
-  volatile uint32_t delay_count;
-  for (delay_count = 0; delay_count < 1000000; delay_count++)
+  if (!success)
   {
+    blinkLED(1);
   }
 
-  return true;
+  return success;
 }
 
 bool EEPROMProgrammer::writeDataBlock(uint16_t startAddress, const uint8_t *data, uint16_t length)
@@ -417,12 +395,12 @@ bool EEPROMProgrammer::writeDataBlock(uint16_t startAddress, const uint8_t *data
 
     // Small delay between writes
     volatile uint32_t delay_count;
-    for (delay_count = 0; delay_count < 1000; delay_count++)
+    for (delay_count = 0; delay_count < 100; delay_count++)
     {
     }
   }
 
-  return true;
+  return verifyData(startAddress, data, length);
 }
 
 bool EEPROMProgrammer::verifyData(uint16_t startAddress, const uint8_t *data, uint16_t length)
@@ -434,28 +412,34 @@ bool EEPROMProgrammer::verifyData(uint16_t startAddress, const uint8_t *data, ui
     {
       return false;
     }
+    // Small delay between read
+    volatile uint32_t delay_count;
+    for (delay_count = 0; delay_count < 100; delay_count++)
+    {
+    }
   }
 
   return true;
 }
 
-void EEPROMProgrammer::dumpMemory(uint16_t startAddress, uint16_t length)
+uint8_t *EEPROMProgrammer::dumpMemory(uint16_t startAddress, uint16_t length)
 {
-  // This would typically send data via UART, but we'll just blink LED for now
+  // Allocate memory for the data array
+  uint8_t *dataArray = new uint8_t[length];
+
+  // Read data from EEPROM into the array
   for (uint16_t i = 0; i < length; i++)
   {
-    uint8_t data = readByte(startAddress + i);
+    dataArray[i] = readByte(startAddress + i);
 
-    // Blink LED based on data value (simple visual feedback)
-    if (data & 0x80)
-      blinkLED(1);
-
-    // Small delay
+    // Small delay between reads
     volatile uint32_t delay_count;
-    for (delay_count = 0; delay_count < 10000; delay_count++)
+    for (delay_count = 0; delay_count < 100; delay_count++)
     {
     }
   }
+
+  return dataArray;
 }
 
 void EEPROMProgrammer::blinkLED(int times)
