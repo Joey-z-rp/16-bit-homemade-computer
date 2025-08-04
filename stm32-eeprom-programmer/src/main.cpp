@@ -32,12 +32,12 @@ int main(void)
       0x00,
       0xEA,
       0x00,
-      0xEA,
-  };
+      0xEA};
 
   // volatile bool writeSuccess = eeprom.writeDataBlock(0x0000, programData, sizeof(programData));
+  volatile bool verified = eeprom.verifyData(0x0000, programData, sizeof(programData));
 
-  volatile uint8_t readData = eeprom.readByte(0x0001);
+  volatile uint8_t readData = eeprom.readByte(0x0000);
   while (1)
   {
     for (delay_count = 0; delay_count < 2000000; delay_count++)

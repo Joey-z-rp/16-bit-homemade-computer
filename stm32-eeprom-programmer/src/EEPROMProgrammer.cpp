@@ -260,7 +260,7 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
 {
   // Wait for the minimum write time before checking
   volatile uint32_t delay_count;
-  for (delay_count = 0; delay_count < 100; delay_count++)
+  for (delay_count = 0; delay_count < 1000; delay_count++)
   {
   }
 
