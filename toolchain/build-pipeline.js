@@ -260,12 +260,12 @@ int main(void)
     
     if (writeSuccess) {
       // Upload successful - LED stays on
-      eeprom.setPinHigh(eeprom.ledPort, eeprom.STATUS_LED_PIN);
+      eeprom.setPinLow(eeprom.ledPort, eeprom.STATUS_LED_PIN);
     } else {
       // Upload failed - LED blinks rapidly
       while (1) {
         eeprom.blinkLED(1);
-        for (delay_count = 0; delay_count < 500000; delay_count++) {}
+        for (delay_count = 0; delay_count < 100000; delay_count++) {}
       }
     }
   } else {
@@ -280,7 +280,7 @@ int main(void)
     
     if (verified) {
       // Verification successful - LED stays on
-      eeprom.setPinHigh(eeprom.ledPort, eeprom.STATUS_LED_PIN);
+      eeprom.setPinLow(eeprom.ledPort, eeprom.STATUS_LED_PIN);
     } else {
       // Verification failed - LED blinks rapidly
       while (1) {
