@@ -1,4 +1,4 @@
-// Converted from simple-loop.hack
+// Converted from ./simple-loop.hack
 // Lower 8 bits of each instruction (bits 0-7)
 const uint8_t hackProgramLower[] = {
     0x00,
@@ -7,7 +7,7 @@ const uint8_t hackProgramLower[] = {
     0xC8,
     0x01,
     0x10,
-    0x05,
+    0xC8,
     0xD0,
     0x12,
     0x01,
@@ -19,7 +19,11 @@ const uint8_t hackProgramLower[] = {
     0xC8,
     0x04,
     0x87,
-    0x12,
+    0x00,
+    0x10,
+    0x16,
+    0x08,
+    0x16,
     0x87
 };
 
@@ -44,7 +48,11 @@ const uint8_t hackProgramUpper[] = {
     0x00,
     0xEA,
     0x00,
+    0xFC,
+    0x00,
+    0xE3,
+    0x00,
     0xEA
 };
 
-const uint16_t HACK_PROGRAM_SIZE = 20;
+const uint16_t HACK_PROGRAM_SIZE = 24;

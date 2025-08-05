@@ -7,9 +7,9 @@ M=1
 (LOOP)
 @1      // Load counter
 D=M
-@5      // Compare with 5
+@200      // Compare with 200
 D=D-A
-@END    // If counter > 5, jump to end
+@BEFORE_END    // If counter > 200, jump to before end
 D;JGT
 
 @1      // Load counter
@@ -22,6 +22,12 @@ M=M+1
 
 @LOOP   // Jump back to loop
 0;JMP
+
+(BEFORE_END)
+@0      // Load sum
+D=M
+@END 
+M=D    // Store sum in END so we can see the result in RAM output
 
 (END)
 @END    // Infinite loop at end

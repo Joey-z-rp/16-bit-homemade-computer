@@ -32,6 +32,10 @@ int main(void)
       0x00,
       0xEA,
       0x00,
+      0xFC,
+      0x00,
+      0xE3,
+      0x00,
       0xEA};
 
   // volatile bool writeSuccess = eeprom.writeDataBlock(0x0000, programData, sizeof(programData));
