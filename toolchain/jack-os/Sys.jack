@@ -1,0 +1,12 @@
+class Sys {
+    function void init() {
+        do Math.init();
+        do Memory.init();
+    }
+
+    function void halt() {
+    }
+
+    function void wait(int duration) {
+    }
+}
