@@ -109,25 +109,48 @@ class BuildPipeline {
 
       // Step 2: Translate VM to Assembly
       this.log("Step 2: Translating VM to Assembly");
-      const vmTranslatorCmd = `node ${this.config.vmTranslator} "${vmFile}" "${this.config.outputDir}"`;
-      this.runCommand(vmTranslatorCmd, "VM translation");
+      // Check if we have multiple VM files (directory input) or single VM file
+      const vmFiles = fs
+        .readdirSync(this.config.outputDir)
+        .filter((file) => file.endsWith(".vm"));
 
-      // Find the actual assembly file that was created (VM translator uses original filename)
-      const asmFile = path.join(this.config.outputDir, `${inputName}.asm`);
-      this.log(`Assembly file generated in build: ${asmFile}`);
+      if (vmFiles.length > 1) {
+        // Multiple VM files - pass directory to VM translator
+        const vmTranslatorCmd = `node ${this.config.vmTranslator} "${this.config.outputDir}" "${this.config.outputDir}"`;
+        this.runCommand(vmTranslatorCmd, "VM translation");
 
-      // Step 3: Assemble to Machine Code
-      this.log("Step 3: Assembling to Machine Code");
-      const assemblerCmd = `node ${this.config.assembler} "${asmFile}" "${this.config.outputDir}"`;
-      this.runCommand(assemblerCmd, "Assembly");
+        // VM translator uses directory name for output
+        const asmFile = path.join(this.config.outputDir, `build.asm`);
+        this.log(`Assembly file generated in build: ${asmFile}`);
 
-      // Get the generated hack file (assembler uses original filename)
-      hackFile = path.join(this.config.outputDir, `${inputName}.hack`);
+        // Step 3: Assemble to Machine Code
+        this.log("Step 3: Assembling to Machine Code");
+        const assemblerCmd = `node ${this.config.assembler} "${asmFile}" "${this.config.outputDir}"`;
+        this.runCommand(assemblerCmd, "Assembly");
+
+        // Assembler uses assembly filename
+        hackFile = path.join(this.config.outputDir, `build.hack`);
+      } else {
+        // Single VM file - pass the specific file
+        const vmFile = path.join(this.config.outputDir, `${inputName}.vm`);
+        const vmTranslatorCmd = `node ${this.config.vmTranslator} "${vmFile}" "${this.config.outputDir}"`;
+        this.runCommand(vmTranslatorCmd, "VM translation");
+
+        // VM translator uses original filename
+        const asmFile = path.join(this.config.outputDir, `${inputName}.asm`);
+        this.log(`Assembly file generated in build: ${asmFile}`);
+
+        // Step 3: Assemble to Machine Code
+        this.log("Step 3: Assembling to Machine Code");
+        const assemblerCmd = `node ${this.config.assembler} "${asmFile}" "${this.config.outputDir}"`;
+        this.runCommand(assemblerCmd, "Assembly");
+
+        // Assembler uses original filename
+        hackFile = path.join(this.config.outputDir, `${inputName}.hack`);
+      }
     }
 
-    // Hack file is now generated in build directory
-    const buildHackFile = path.join(this.config.outputDir, `${inputName}.hack`);
-    this.log(`Hack file generated in build: ${buildHackFile}`);
+    this.log(`Hack file generated in build: ${hackFile}`);
 
     // Step 4: Split Machine Code
     this.log("Step 4: Splitting machine code for EEPROM");
