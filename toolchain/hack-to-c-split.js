@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const path = require("path");
 
-function convertHackToSplitC(hackFile) {
+function convertHackToSplitC(hackFile, outputDir) {
   try {
     // Read the hack file
     const content = fs.readFileSync(hackFile, "utf8");
@@ -48,8 +49,17 @@ const uint8_t hackProgramUpper[] = {
 const uint16_t HACK_PROGRAM_SIZE = ${lowerBytes.length};
 `;
 
+    // Determine output path
+    let outputPath;
+    if (outputDir) {
+      const filename = path.basename(hackFile, ".hack") + "-split.h";
+      outputPath = path.join(outputDir, filename);
+    } else {
+      outputPath = hackFile.replace(".hack", "-split.h");
+    }
+
     // Write output file
-    fs.writeFileSync(hackFile.replace(".hack", "-split.h"), cArrays);
+    fs.writeFileSync(outputPath, cArrays);
 
     console.log(`Converted ${lowerBytes.length} instructions from ${hackFile}`);
   } catch (error) {
@@ -59,12 +69,13 @@ const uint16_t HACK_PROGRAM_SIZE = ${lowerBytes.length};
 }
 
 // Command line usage
-if (process.argv.length !== 3) {
-  console.log("Usage: node hack-to-c-split.js <input.hack>");
+if (process.argv.length < 3) {
+  console.log("Usage: node hack-to-c-split.js <input.hack> [output-directory]");
   console.log("Example: node hack-to-c-split.js simple-loop.hack");
   process.exit(1);
 }
 
 const inputFile = process.argv[2];
+const outputDir = process.argv[3]; // Optional output directory
 
-convertHackToSplitC(inputFile);
+convertHackToSplitC(inputFile, outputDir);

@@ -292,12 +292,26 @@ function processFile(inputFile, writer, index) {
 }
 
 const inputPath = process.argv[2];
+const outputDir = process.argv[3]; // Optional output directory
+
+if (!inputPath) {
+  console.error(
+    "Usage: node vm-translator.js [path/to/file.vm] [output-directory]"
+  );
+  process.exit(1);
+}
+
 const isDirectory = fs.statSync(inputPath).isDirectory();
 
 if (isDirectory) {
   // If input is a directory, process all .vm files
   const dirName = path.basename(inputPath);
-  const outputFile = path.join(inputPath, `${dirName}.asm`);
+  let outputFile;
+  if (outputDir) {
+    outputFile = path.join(outputDir, `${dirName}.asm`);
+  } else {
+    outputFile = path.join(inputPath, `${dirName}.asm`);
+  }
   const writer = new CodeWriter(outputFile);
 
   const files = fs
@@ -312,7 +326,13 @@ if (isDirectory) {
   writer.close();
 } else {
   // If input is a single file
-  const outputFile = inputPath.replace(/\.vm$/, ".asm");
+  let outputFile;
+  if (outputDir) {
+    const filename = path.basename(inputPath, ".vm") + ".asm";
+    outputFile = path.join(outputDir, filename);
+  } else {
+    outputFile = inputPath.replace(/\.vm$/, ".asm");
+  }
   const writer = new CodeWriter(outputFile);
   processFile(inputPath, writer, 0);
   writer.close();

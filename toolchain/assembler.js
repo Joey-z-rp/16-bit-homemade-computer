@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require("fs");
+const path = require("path");
 
 const COMP = {
   0: "0101010",
@@ -129,9 +130,11 @@ function assemble(lines, symbolTable) {
 }
 
 function main() {
-  const [, , filepath] = process.argv;
+  const [, , filepath, outputDir] = process.argv;
   if (!filepath) {
-    console.error("Usage: node assembler.js [path/to/file.asm]");
+    console.error(
+      "Usage: node assembler.js [path/to/file.asm] [output-directory]"
+    );
     process.exit(1);
   }
 
@@ -141,7 +144,17 @@ function main() {
   const withoutLoopLabels = firstPass(parsed, symbolTable);
   const binary = assemble(withoutLoopLabels, symbolTable);
 
-  const outputPath = filepath.replace(/\.asm$/, ".hack");
+  // Determine output path
+  let outputPath;
+  if (outputDir) {
+    // Use specified output directory
+    const filename = path.basename(filepath, ".asm") + ".hack";
+    outputPath = path.join(outputDir, filename);
+  } else {
+    // Use same directory as input (default behavior)
+    outputPath = filepath.replace(/\.asm$/, ".hack");
+  }
+
   fs.writeFileSync(outputPath, binary.join("\n"), "utf8");
   console.log(`Assembled: ${outputPath}`);
 }

@@ -10,3 +10,5 @@ node_modules
 **/greybox_tmp
 **/quartus/incremental_db
 **/quartus/output_files
+build
+jack-programs
