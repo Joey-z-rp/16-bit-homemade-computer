@@ -1,0 +1,18 @@
+function Screen.clearScreen 0
+push constant 0
+return
+function Screen.setColor 0
+push constant 0
+return
+function Screen.drawPixel 0
+push constant 0
+return
+function Screen.drawLine 0
+push constant 0
+return
+function Screen.drawRectangle 0
+push constant 0
+return
+function Screen.drawCircle 0
+push constant 0
+return

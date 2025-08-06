@@ -1,12 +1,20 @@
 class Sys {
     function void init() {
-        do Math.init();
         do Memory.init();
+        do Math.init();
+        do Main.main();
+        return;
     }
 
     function void halt() {
+        return;
     }
 
     function void wait(int duration) {
+        return;
+    }
+
+    function void error(int errorCode) {
+        return;
     }
 }

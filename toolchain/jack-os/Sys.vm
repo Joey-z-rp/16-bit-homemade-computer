@@ -1,0 +1,18 @@
+function Sys.init 0
+call Memory.init 0
+pop temp 0
+call Math.init 0
+pop temp 0
+call Main.main 0
+pop temp 0
+push constant 0
+return
+function Sys.halt 0
+push constant 0
+return
+function Sys.wait 0
+push constant 0
+return
+function Sys.error 0
+push constant 0
+return

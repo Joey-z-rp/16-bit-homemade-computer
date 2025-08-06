@@ -107,8 +107,22 @@ class BuildPipeline {
       const vmFile = path.join(this.config.outputDir, `${inputName}.vm`);
       this.log(`VM file generated in build: ${vmFile}`);
 
-      // Step 2: Translate VM to Assembly
-      this.log("Step 2: Translating VM to Assembly");
+      // Step 2: Copy OS VM files to build directory
+      this.log("Step 2: Copying OS VM files to build directory");
+      const jackOsDir = path.join(__dirname, "jack-os");
+      const osVmFiles = fs
+        .readdirSync(jackOsDir)
+        .filter((file) => file.endsWith(".vm"));
+
+      osVmFiles.forEach((file) => {
+        const sourceFile = path.join(jackOsDir, file);
+        const targetFile = path.join(this.config.outputDir, file);
+        fs.copyFileSync(sourceFile, targetFile);
+        this.log(`Copied OS VM file: ${file}`);
+      });
+
+      // Step 3: Translate VM to Assembly
+      this.log("Step 3: Translating VM to Assembly");
       // Check if we have multiple VM files (directory input) or single VM file
       const vmFiles = fs
         .readdirSync(this.config.outputDir)
@@ -123,8 +137,8 @@ class BuildPipeline {
         const asmFile = path.join(this.config.outputDir, `build.asm`);
         this.log(`Assembly file generated in build: ${asmFile}`);
 
-        // Step 3: Assemble to Machine Code
-        this.log("Step 3: Assembling to Machine Code");
+        // Step 4: Assemble to Machine Code
+        this.log("Step 4: Assembling to Machine Code");
         const assemblerCmd = `node ${this.config.assembler} "${asmFile}" "${this.config.outputDir}"`;
         this.runCommand(assemblerCmd, "Assembly");
 
@@ -140,8 +154,8 @@ class BuildPipeline {
         const asmFile = path.join(this.config.outputDir, `${inputName}.asm`);
         this.log(`Assembly file generated in build: ${asmFile}`);
 
-        // Step 3: Assemble to Machine Code
-        this.log("Step 3: Assembling to Machine Code");
+        // Step 4: Assemble to Machine Code
+        this.log("Step 4: Assembling to Machine Code");
         const assemblerCmd = `node ${this.config.assembler} "${asmFile}" "${this.config.outputDir}"`;
         this.runCommand(assemblerCmd, "Assembly");
 
@@ -152,13 +166,13 @@ class BuildPipeline {
 
     this.log(`Hack file generated in build: ${hackFile}`);
 
-    // Step 4: Split Machine Code
-    this.log("Step 4: Splitting machine code for EEPROM");
+    // Step 5: Split Machine Code
+    this.log("Step 5: Splitting machine code for EEPROM");
     const splitterCmd = `node ${this.config.hackSplitter} "${hackFile}" "${this.config.outputDir}"`;
     this.runCommand(splitterCmd, "Machine code splitting");
 
-    // Step 5: Generate EEPROM Programming Files
-    this.log("Step 5: Generating EEPROM programming files");
+    // Step 6: Generate EEPROM Programming Files
+    this.log("Step 6: Generating EEPROM programming files");
     this.generateEEPROMFiles(hackFile, sanitizedName);
 
     this.success("Build pipeline completed successfully!");
@@ -348,11 +362,12 @@ Examples:
 The pipeline will:
 For .jack files:
 1. Compile Jack code to VM
-2. Translate VM to Assembly
-3. Assemble to Machine Code
-4. Split into upper/lower bytes for EEPROM
-5. Generate STM32 programming file with both halves
-6. Optionally copy to STM32 programmer
+2. Copy OS VM files to build directory
+3. Translate VM to Assembly (includes OS VM files)
+4. Assemble to Machine Code
+5. Split into upper/lower bytes for EEPROM
+6. Generate STM32 programming file with both halves
+7. Optionally copy to STM32 programmer
 
 For .asm files:
 1. Assemble to Machine Code
