@@ -1,4 +1,5 @@
 #include "EEPROMProgrammer.h"
+#include "DelayUtil.h"
 
 EEPROMProgrammer::EEPROMProgrammer()
 {
@@ -28,10 +29,13 @@ void EEPROMProgrammer::begin()
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
+  // Need to set WE high early to avoid accidental writes
+  setPinHigh(controlPort, EEPROM_WE_PIN); // WE inactive (high)
+
   configureGPIO();
 
   // Initialize control pins to inactive state
-  setPinHigh(controlPort, EEPROM_WE_PIN); // WE inactive (high)
+  setPinHigh(controlPort, EEPROM_WE_PIN);
   setPinHigh(controlPort, EEPROM_OE_PIN); // OE inactive (high)
   setPinHigh(controlPort, EEPROM_CE_PIN); // CE inactive (high)
 
@@ -258,14 +262,10 @@ void EEPROMProgrammer::writeData(uint8_t data)
 
 bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
 {
-  // Wait for the minimum write time before checking
-  volatile uint32_t delay_count;
-  for (delay_count = 0; delay_count < 10000; delay_count++)
-  {
-  }
-
   setDataBusInput();
   setPinLow(controlPort, EEPROM_OE_PIN);
+
+  DelayUtil::delayMicroseconds(10);
 
   // Poll the data bus for write completion
   // During write, reading the same address should return the complement of written data
@@ -292,10 +292,7 @@ bool EEPROMProgrammer::waitForWriteComplete(uint8_t expectedData)
       stableCount = 0; // Reset counter if data doesn't match expected
     }
 
-    // Small delay between reads
-    for (delay_count = 0; delay_count < 100; delay_count++)
-    {
-    }
+    DelayUtil::delayMicroseconds(10);
   }
 
   setPinHigh(controlPort, EEPROM_OE_PIN);
@@ -344,14 +341,22 @@ void EEPROMProgrammer::disableSoftwareDataProtection()
   setPinHigh(controlPort, EEPROM_WE_PIN);
 }
 
-uint8_t EEPROMProgrammer::readByte(uint16_t address)
+uint8_t EEPROMProgrammer::readByte(uint16_t address, bool shouldDelay)
 {
   setPinLow(controlPort, EEPROM_CE_PIN);
   setPinLow(controlPort, EEPROM_OE_PIN);
+  setPinHigh(controlPort, EEPROM_WE_PIN);
 
   setAddress(address);
   setDataBusInput();
-
+  if (shouldDelay)
+  {
+    DelayUtil::delayMicroseconds(1000);
+  }
+  else
+  {
+    DelayUtil::delayMicroseconds(1);
+  }
   uint8_t data = readData();
 
   setPinHigh(controlPort, EEPROM_OE_PIN);
@@ -360,17 +365,28 @@ uint8_t EEPROMProgrammer::readByte(uint16_t address)
   return data;
 }
 
-bool EEPROMProgrammer::writeByte(uint16_t address, uint8_t data)
+bool EEPROMProgrammer::writeByte(uint16_t address, uint8_t data, bool shouldDelay)
 {
   setDataBusOutput();
   setPinLow(controlPort, EEPROM_CE_PIN);
+  setPinHigh(controlPort, EEPROM_OE_PIN);
 
   // disableSoftwareDataProtection();
 
   setAddress(address);
   writeData(data);
 
+  if (shouldDelay)
+  {
+    DelayUtil::delayMicroseconds(2000);
+  }
+  else
+  {
+    DelayUtil::delayMicroseconds(10);
+  }
+
   setPinLow(controlPort, EEPROM_WE_PIN);
+  DelayUtil::delayMicroseconds(1);
   setPinHigh(controlPort, EEPROM_WE_PIN);
 
   // Wait for write completion
@@ -388,15 +404,9 @@ bool EEPROMProgrammer::writeDataBlock(uint16_t startAddress, const uint8_t *data
 {
   for (uint16_t i = 0; i < length; i++)
   {
-    if (!writeByte(startAddress + i, data[i]))
+    if (!writeByte(startAddress + i, data[i], i == 0))
     {
       return false;
-    }
-
-    // Small delay between writes
-    volatile uint32_t delay_count;
-    for (delay_count = 0; delay_count < 100; delay_count++)
-    {
     }
   }
 
@@ -407,19 +417,54 @@ bool EEPROMProgrammer::verifyData(uint16_t startAddress, const uint8_t *data, ui
 {
   for (uint16_t i = 0; i < length; i++)
   {
-    uint8_t readData = readByte(startAddress + i);
-    if (readData != data[i])
+    uint8_t readData = readByte(startAddress + i, i == 0);
+    uint8_t expectedData = data[i];
+    if (readData != expectedData)
     {
       return false;
-    }
-    // Small delay between read
-    volatile uint32_t delay_count;
-    for (delay_count = 0; delay_count < 100; delay_count++)
-    {
     }
   }
 
   return true;
+}
+
+uint16_t *EEPROMProgrammer::findMismatchedIndices(uint16_t startAddress, const uint8_t *data, uint16_t length)
+{
+  // First pass: count mismatches to allocate the right size array
+  uint16_t mismatchCount = 0;
+  for (uint16_t i = 0; i < length; i++)
+  {
+    uint8_t readData = readByte(startAddress + i, i == 0);
+    uint8_t expectedData = data[i];
+    if (readData != expectedData)
+    {
+      mismatchCount++;
+    }
+  }
+
+  // If no mismatches, return nullptr
+  if (mismatchCount == 0)
+  {
+    return nullptr;
+  }
+
+  // Allocate array for mismatched indices
+  uint16_t *mismatchedIndices = new uint16_t[mismatchCount];
+
+  // Second pass: collect the mismatched indices
+  uint16_t index = 0;
+  for (uint16_t i = 0; i < length; i++)
+  {
+    uint8_t readData = readByte(startAddress + i, i == 0);
+    uint8_t expectedData = data[i];
+    if (readData != expectedData)
+    {
+      mismatchedIndices[index] = i; // Store the relative index (0-based)
+      index++;
+    }
+  }
+
+  return mismatchedIndices;
 }
 
 uint8_t *EEPROMProgrammer::dumpMemory(uint16_t startAddress, uint16_t length)

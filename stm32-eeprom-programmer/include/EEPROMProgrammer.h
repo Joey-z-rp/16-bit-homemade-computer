@@ -68,12 +68,13 @@ public:
   void disableSoftwareDataProtection();
 
   // Basic operations
-  uint8_t readByte(uint16_t address);
-  bool writeByte(uint16_t address, uint8_t data);
+  uint8_t readByte(uint16_t address, bool shouldDelay = false);
+  bool writeByte(uint16_t address, uint8_t data, bool shouldDelay = false);
 
   // Bulk operations
   bool writeDataBlock(uint16_t startAddress, const uint8_t *data, uint16_t length);
   bool verifyData(uint16_t startAddress, const uint8_t *data, uint16_t length);
+  uint16_t *findMismatchedIndices(uint16_t startAddress, const uint8_t *data, uint16_t length);
 
   // Utility functions
   uint8_t *dumpMemory(uint16_t startAddress, uint16_t length);
