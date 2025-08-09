@@ -24,7 +24,7 @@ module write_enable_sync #(parameter ADDR_WIDTH = 15, DATA_WIDTH = 16) (
 		sync_0 <= cpu_write_enable_toggle;
 		sync_1 <= sync_0;
 		prev_sync <= sync_1;
-		ram_write_enable <= (sync_1 != prev_sync);
+		ram_write_enable <= (sync_1 != prev_sync) && (cpu_addr < 15'b011000000000000);
 		
 		if (sync_1 != prev_sync) begin
 			ram_addr <= cpu_addr;

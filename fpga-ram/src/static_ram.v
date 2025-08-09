@@ -4,8 +4,10 @@ module static_ram #(parameter ADDR_WIDTH = 15, DATA_WIDTH = 16) (
 	input wire cpu_write_enable,
 	input wire [ADDR_WIDTH - 1:0] addr_in,
 	input wire [DATA_WIDTH - 1:0] data_in,
+	input wire [7:0] keypress_data,
+	input wire [1:0] cmd_addr,
 	
-	
+	output wire [DATA_WIDTH - 1:0] cmd_out,
 	output wire [DATA_WIDTH - 1:0] data_out,
 	output wire pll_locked_led,
 	output wire ram_overflow
@@ -16,6 +18,8 @@ wire ram_clock;
 wire ram_write_enable;
 wire [ADDR_WIDTH - 1:0] ram_addr;
 wire [DATA_WIDTH - 1:0] ram_data;
+wire [DATA_WIDTH - 1:0] ram_data_out;
+wire [DATA_WIDTH - 1:0] keypress_out_wire;
 
 reg [ADDR_WIDTH - 1:0] highest_addr = 0;
 reg ram_overflow_reg = 1;
@@ -56,10 +60,23 @@ m9k_ram ram_instance (
 	.wren(ram_write_enable),
 	.rdaddress(addr_in_ram_domain),
 	.clock(ram_clock),
-	.q(data_out)
+	.q(ram_data_out)
+);
+
+peripherals peripherals_instance (
+	.cpu_clock(cpu_clock),
+	.cpu_write_enable(cpu_write_enable),
+	.cpu_addr(addr_in),
+	.cpu_data(data_in),
+	.ram_clock(ram_clock),
+	.keypress_data(keypress_data),
+	.cmd_addr(cmd_addr),
+	.keypress_out_wire(keypress_out_wire),
+	.cmd_out_wire(cmd_out)
 );
 
 assign ram_overflow = ram_overflow_reg;
 assign pll_locked_led = ~pll_locked;
+assign data_out = addr_in == 15'b101000000000000 ? keypress_out_wire : ram_data_out;
 
 endmodule

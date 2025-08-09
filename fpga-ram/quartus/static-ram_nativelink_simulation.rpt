@@ -1,16 +1,22 @@
 Info: Start Nativelink Simulation process
-Error: Run Analysis and Elaboration successfully before starting RTL NativeLink Simulation
-Analysis and Synthesis should be completed successfully before starting RTL NativeLink Simulation
-Error: NativeLink simulation flow was NOT successful
 
+========= EDA Simulation Settings =====================
 
+Sim Mode              :  Gate
+Family                :  cycloneive
+Quartus root          :  d:/intelfpga/18.0/quartus/bin64/
+Quartus sim root      :  d:/intelfpga/18.0/quartus/eda/sim_lib
+Simulation Tool       :  modelsim-altera
+Simulation Language   :  verilog
+Simulation Mode       :  GUI
+Sim Output File       :  static-ram_8_1200mv_85c_slow.vo
+Sim SDF File       :  static-ram_8_1200mv_85c_v_slow.sdo
+Sim dir               :  simulation\modelsim
 
-================The following additional information is provided to help identify the cause of error while running nativelink scripts=================
-Nativelink TCL script failed with errorCode:  1
-Nativelink TCL script failed with errorInfo:  1
-    invoked from within
-"if ![qmap_successfully_completed] {
-            nl_postmsg error "Error: Run Analysis and Elaboration successfully before starting RTL NativeLink Simu..."
-    (procedure "run_eda_simulation_tool" line 232)
-    invoked from within
-"run_eda_simulation_tool eda_opts_hash"
+=======================================================
+
+Info: Starting NativeLink simulation with ModelSim-Altera software
+Sourced NativeLink script d:/intelfpga/18.0/quartus/common/tcl/internal/nativelink/modelsim.tcl
+Warning: File static-ram_run_msim_gate_verilog.do already exists - backing up current file as static-ram_run_msim_gate_verilog.do.bak5
+Info: Spawning ModelSim-Altera Simulation software 
+Info: NativeLink simulation flow was successful
