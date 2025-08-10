@@ -61,7 +61,11 @@ const predefinedSymbols = {
   ARG: 2,
   THIS: 3,
   THAT: 4,
-  SCREEN: 16384,
+  UI_CMD_1: 16384,
+  UI_CMD_2: 16385,
+  UI_CMD_3: 16386,
+  UI_CMD_4: 16387,
+  KEYBOARD: 20480,
   KBD: 24576,
 };
 

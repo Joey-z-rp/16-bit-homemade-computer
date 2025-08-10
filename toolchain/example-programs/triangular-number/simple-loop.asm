@@ -7,7 +7,7 @@ M=1
 (LOOP)
 @1      // Load counter
 D=M
-@200      // Compare with 200
+@200     // Compare with 200
 D=D-A
 @BEFORE_END    // If counter > 200, jump to before end
 D;JGT

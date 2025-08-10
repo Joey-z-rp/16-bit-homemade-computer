@@ -1,9 +1,10 @@
 class Main {
     function void main() {
         var int result;
-        let result = Main.fib(15);
+        let result = Main.fib(3);
+        do Memory.poke(4095, result);
         while (true) {
-            do Memory.poke(3333, result);
+            do Memory.peek(4095);
         }
         return;
     }
