@@ -21,6 +21,10 @@ M=0
 @clear_screen_return_address
 M=0
 
+// Return address for toggle MSB flag function
+@toggle_msb_return
+M=0
+
 // The last key pressed
 @last_key
 M=0
@@ -44,6 +48,10 @@ M=0
 
 // Temporary address for buffer operations
 @current_buffer_addr
+M=0
+
+// Command synchronization: MSB toggle flag (0 = MSB=0, 32768 = MSB=1)
+@cmd_sync_flag
 M=0
 
 // Input buffer storage area (max 30 characters) starting at 340
@@ -424,15 +432,31 @@ M=D
 // Print the character to the screen at the current position
 @KEYBOARD
 D=M
+// Add MSB flag to the character
+@cmd_sync_flag
+D=D+M
 @UI_CMD_1
 M=D
 @input_buffer_index
 D=M
+// Print with Y=1
 @256
 D=D+A
+// Add MSB flag to the position
+@cmd_sync_flag
+D=D+M
 @UI_CMD_2
 M=D
 
+// Toggle the command sync flag for next command
+@TOGGLE_MSB_RETURN_SELECT_ACTION
+D=A
+@toggle_msb_return
+M=D
+@TOGGLE_MSB_FLAG
+0;JMP
+
+(TOGGLE_MSB_RETURN_SELECT_ACTION)
 // Increment buffer index and length
 @input_buffer_index
 M=M+1
@@ -580,15 +604,32 @@ M=M+1
 @print_string_address
 A=M
 D=M
+// Add MSB flag to the character
+@cmd_sync_flag
+D=D+M
 // Send the character to UI_CMD_1
 @UI_CMD_1
 M=D
 @print_string_index
 D=M
+// Add MSB flag to the position
+@cmd_sync_flag
+D=D+M
 @UI_CMD_2
 M=D
+
+// Toggle the command sync flag for next command
+@TOGGLE_MSB_RETURN_PRINT_STRING
+D=A
+@toggle_msb_return
+M=D
+@TOGGLE_MSB_FLAG
+0;JMP
+
+(TOGGLE_MSB_RETURN_PRINT_STRING)
+
 // Add delay after sending command
-@500
+@800
 D=A
 @delay_loop_number
 M=D
@@ -622,6 +663,7 @@ A=M
 
 (CLEAR_SCREEN)
 // Send clear screen command
+// Single word command does not need MSB flag
 @4096
 D=A
 @UI_CMD_1
@@ -641,5 +683,31 @@ M=D
 (CLEAR_SCREEN_DELAY)
 // Return to caller
 @clear_screen_return_address
+A=M
+0;JMP
+
+// Helper function to toggle the MSB flag
+(TOGGLE_MSB_FLAG)
+@cmd_sync_flag
+D=M
+@0
+D=D-A
+@SET_MSB_32768
+D;JEQ
+// If flag was 32768, set it to 0
+@cmd_sync_flag
+M=0
+@TOGGLE_MSB_DONE
+0;JMP
+(SET_MSB_32768)
+// If flag was 0, set it to 32768
+@32767
+D=A
+D=D+1
+@cmd_sync_flag
+M=D
+(TOGGLE_MSB_DONE)
+// Return to caller
+@toggle_msb_return
 A=M
 0;JMP
