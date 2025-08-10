@@ -297,6 +297,22 @@ D=A
 @339
 M=D
 
+// Send boot command
+@6144
+D=A
+@UI_CMD_1
+M=D
+@30000
+D=A
+@delay_loop_number
+M=D
+@MAIN
+D=A
+@delay_return_address
+M=D
+@DELAY
+0;JMP
+
 (MAIN)
 
 // Delay between each main loop
