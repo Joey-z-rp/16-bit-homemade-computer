@@ -14,6 +14,12 @@ M=0
 // Print string return address
 @print_string_return_address
 M=0
+// Current character index for positioning (x-coordinate)
+@print_string_index
+M=0
+// Return address for clear screen function
+@clear_screen_return_address
+M=0
 
 // The last key pressed
 @last_key
@@ -204,7 +210,7 @@ D=A
 @invalid_action_address
 M=D
 // The number of characters in the invalid action message
-@13
+@14
 D=A
 @invalid_action_length
 M=D
@@ -305,6 +311,15 @@ D=M
 D;JGT
 
 // Select action prompt
+// Clear the screen first
+@CLEAR_SCREEN_THEN_PRINT_SELECT_PROMPT
+D=A
+@clear_screen_return_address
+M=D
+@CLEAR_SCREEN
+0;JMP
+
+(CLEAR_SCREEN_THEN_PRINT_SELECT_PROMPT)
 @select_action_prompt_address
 D=M
 @print_string_address
@@ -322,6 +337,15 @@ M=D
 
 // Music prompt
 (MUSIC_PROMPT)
+// Clear the screen first
+@CLEAR_SCREEN_THEN_PRINT_MUSIC_PROMPT
+D=A
+@clear_screen_return_address
+M=D
+@CLEAR_SCREEN
+0;JMP
+
+(CLEAR_SCREEN_THEN_PRINT_MUSIC_PROMPT)
 @music_prompt_address
 D=M
 @print_string_address
@@ -397,6 +421,18 @@ D=M
 A=M
 M=D
 
+// Print the character to the screen at the current position
+@KEYBOARD
+D=M
+@UI_CMD_1
+M=D
+@input_buffer_index
+D=M
+@256
+D=D+A
+@UI_CMD_2
+M=D
+
 // Increment buffer index and length
 @input_buffer_index
 M=M+1
@@ -469,12 +505,10 @@ D=D-A
 D;JNE
 
 // Clear the input buffer
-@0
-D=A
 @input_buffer_length
-M=D
+M=0
 @input_buffer_index
-M=D
+M=0
 // Enter music mode
 @1
 D=A
@@ -487,6 +521,15 @@ M=0
 
 (INVALID_ACTION)
 // Print "INVALID ACTION" message
+// Clear the screen first
+@CLEAR_SCREEN_THEN_PRINT_INVALID_ACTION
+D=A
+@clear_screen_return_address
+M=D
+@CLEAR_SCREEN
+0;JMP
+
+(CLEAR_SCREEN_THEN_PRINT_INVALID_ACTION)
 @invalid_action_address
 D=M
 @print_string_address
@@ -504,12 +547,10 @@ M=D
 
 (INVALID_ACTION_PRINTED)
 // Clear the input buffer
-@0
-D=A
 @input_buffer_length
-M=D
+M=0
 @input_buffer_index
-M=D
+M=0
 @MAIN
 0;JMP
 
@@ -542,8 +583,12 @@ D=M
 // Send the character to UI_CMD_1
 @UI_CMD_1
 M=D
+@print_string_index
+D=M
+@UI_CMD_2
+M=D
 // Add delay after sending command
-@100
+@500
 D=A
 @delay_loop_number
 M=D
@@ -558,6 +603,9 @@ M=D
 // Increment the string address for next character
 @print_string_address
 M=M+1
+// Increment the x-coordinate for next character position
+@print_string_index
+M=M+1
 // Decrement the remaining length
 @print_string_length
 M=M-1
@@ -566,6 +614,32 @@ D=M
 @PRINT_STRING
 D;JGT
 // If length = 0, we're done - return
+@print_string_index
+M=0
 @print_string_return_address
+A=M
+0;JMP
+
+(CLEAR_SCREEN)
+// Send clear screen command
+@4096
+D=A
+@UI_CMD_1
+M=D
+// Add small delay after clear screen
+@200
+D=A
+@delay_loop_number
+M=D
+@CLEAR_SCREEN_DELAY
+D=A
+@delay_return_address
+M=D
+@DELAY
+0;JMP
+
+(CLEAR_SCREEN_DELAY)
+// Return to caller
+@clear_screen_return_address
 A=M
 0;JMP
