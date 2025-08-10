@@ -50,6 +50,10 @@ M=0
 @current_buffer_addr
 M=0
 
+// Current musical note character for display
+@current_note
+M=0
+
 // Command synchronization: MSB toggle flag (0 = MSB=0, 32768 = MSB=1)
 @cmd_sync_flag
 M=0
@@ -579,7 +583,154 @@ M=0
 0;JMP
 
 (MUSIC)
-// TODO: Implement the music logic
+// Check if no key is pressed (keyboard reading is 0)
+@KEYBOARD
+D=M
+@MAIN
+D;JEQ
+
+// Check if key is 1-6 for music notes
+@KEYBOARD
+D=M
+@49 // ASCII '1'
+D=D-A
+@CHECK_KEY_1
+D;JEQ
+
+@KEYBOARD
+D=M
+@50 // ASCII '2'
+D=D-A
+@CHECK_KEY_2
+D;JEQ
+
+@KEYBOARD
+D=M
+@51 // ASCII '3'
+D=D-A
+@CHECK_KEY_3
+D;JEQ
+
+@KEYBOARD
+D=M
+@52 // ASCII '4'
+D=D-A
+@CHECK_KEY_4
+D;JEQ
+
+@KEYBOARD
+D=M
+@53 // ASCII '5'
+D=D-A
+@CHECK_KEY_5
+D;JEQ
+
+@KEYBOARD
+D=M
+@54 // ASCII '6'
+D=D-A
+@CHECK_KEY_6
+D;JEQ
+
+// If key is not 1-6, ignore it
+@MAIN
+0;JMP
+
+// Handle key 1 (C note)
+(CHECK_KEY_1)
+@67 // ASCII 'C'
+D=A
+@SEND_PLAY_SAMPLE_CMD
+0;JMP
+
+// Handle key 2 (D note)
+(CHECK_KEY_2)
+@68 // ASCII 'D'
+D=A
+@SEND_PLAY_SAMPLE_CMD
+0;JMP
+
+// Handle key 3 (E note)
+(CHECK_KEY_3)
+@69 // ASCII 'E'
+D=A
+@SEND_PLAY_SAMPLE_CMD
+0;JMP
+
+// Handle key 4 (F note)
+(CHECK_KEY_4)
+@70 // ASCII 'F'
+D=A
+@SEND_PLAY_SAMPLE_CMD
+0;JMP
+
+// Handle key 5 (G note)
+(CHECK_KEY_5)
+@71 // ASCII 'G'
+D=A
+@SEND_PLAY_SAMPLE_CMD
+0;JMP
+
+// Handle key 6 (A note)
+(CHECK_KEY_6)
+@65 // ASCII 'A'
+D=A
+@SEND_PLAY_SAMPLE_CMD
+0;JMP
+
+// Display the musical note and send command
+(SEND_PLAY_SAMPLE_CMD)
+// Store the note character for display
+@current_note
+M=D
+
+// Send play sample command
+@2048 // 0 0001 000 00000000
+D=A
+@KEYBOARD
+D=D+M // Add the ASCII code of the pressed key
+@UI_CMD_1
+M=D
+
+// Add small delay after displaying note
+@800
+D=A
+@delay_loop_number
+M=D
+@MUSIC_NOTE_DISPLAY
+D=A
+@delay_return_address
+M=D
+@DELAY
+0;JMP
+
+(MUSIC_NOTE_DISPLAY)
+// Display the note character at X=0, Y=1
+@current_note
+D=M
+// Add MSB flag to the character
+@cmd_sync_flag
+D=D+M
+@UI_CMD_1
+M=D
+// Position at X=0, Y=1 (Y=1 means add 256 to X coordinate)
+@256
+D=A
+// Add MSB flag to the position
+@cmd_sync_flag
+D=D+M
+@UI_CMD_2
+M=D
+
+// Toggle the command sync flag for next command
+@TOGGLE_MSB_RETURN_MUSIC
+D=A
+@toggle_msb_return
+M=D
+@TOGGLE_MSB_FLAG
+0;JMP
+
+(TOGGLE_MSB_RETURN_MUSIC)
 @MAIN
 0;JMP
 
