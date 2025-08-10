@@ -28,6 +28,24 @@ M=0
 @is_mode_prompt_printed
 M=0
 
+// Buffer for storing user input (max 30 characters)
+@input_buffer_start
+M=0
+@input_buffer_length
+M=0
+@input_buffer_index
+M=0
+
+// Temporary address for buffer operations
+@current_buffer_addr
+M=0
+
+// Input buffer storage area (max 30 characters) starting at 340
+@340
+D=A
+@input_buffer_start
+M=D
+
 // Select action prompt stored at 300: "SELECT ACTION"
 @300
 D=A
@@ -180,6 +198,87 @@ D=A
 @325
 M=D
 
+// "INVALID ACTION" message stored at 326
+@326
+D=A
+@invalid_action_address
+M=D
+// The number of characters in the invalid action message
+@13
+D=A
+@invalid_action_length
+M=D
+// "I"
+@73
+D=A
+@326
+M=D
+// "N"
+@78
+D=A
+@327
+M=D
+// "V"
+@86
+D=A
+@328
+M=D
+// "A"
+@65
+D=A
+@329
+M=D
+// "L"
+@76
+D=A
+@330
+M=D
+// "I"
+@73
+D=A
+@331
+M=D
+// "D"
+@68
+D=A
+@332
+M=D
+// " "
+@32
+D=A
+@333
+M=D
+// "A"
+@65
+D=A
+@334
+M=D
+// "C"
+@67
+D=A
+@335
+M=D
+// "T"
+@84
+D=A
+@336
+M=D
+// "I"
+@73
+D=A
+@337
+M=D
+// "O"
+@79
+D=A
+@338
+M=D
+// "N"
+@78
+D=A
+@339
+M=D
+
 (MAIN)
 
 // Delay between each main loop
@@ -263,7 +362,154 @@ D;JEQ
 0;JMP
 
 (SELECT_ACTION)
-// TODO: Implement the select action logic
+// Check if no key is pressed (keyboard reading is 0)
+@KEYBOARD
+D=M
+@MAIN
+D;JEQ
+
+// Check if Enter key is pressed (ASCII 10)
+@KEYBOARD
+D=M
+@10
+D=D-A
+@CHECK_ENTER
+D;JEQ
+
+// Check if buffer is full (max 30 characters)
+@input_buffer_length
+D=M
+@30
+D=D-A
+@MAIN
+D;JGE
+
+// Store the character in the buffer
+@input_buffer_start
+D=M
+@input_buffer_index
+D=D+M
+@current_buffer_addr
+M=D
+@KEYBOARD
+D=M
+@current_buffer_addr
+A=M
+M=D
+
+// Increment buffer index and length
+@input_buffer_index
+M=M+1
+@input_buffer_length
+M=M+1
+
+@MAIN
+0;JMP
+
+(CHECK_ENTER)
+// Enter key pressed - check if input equals "music"
+@input_buffer_length
+D=M
+@5
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+// Check each character of "MUSIC"
+@input_buffer_start
+A=M
+D=M
+@77 // 'M'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+@input_buffer_start
+D=M
+@1
+D=D+A
+A=D
+D=M
+@85 // 'U'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+@input_buffer_start
+D=M
+@2
+D=D+A
+A=D
+D=M
+@83 // 'S'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+@input_buffer_start
+D=M
+@3
+D=D+A
+A=D
+D=M
+@73 // 'I'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+@input_buffer_start
+D=M
+@4
+D=D+A
+A=D
+D=M
+@67 // 'C'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+// Clear the input buffer
+@0
+D=A
+@input_buffer_length
+M=D
+@input_buffer_index
+M=D
+// Enter music mode
+@1
+D=A
+@mode
+M=D
+@is_mode_prompt_printed
+M=0
+@MAIN
+0;JMP
+
+(INVALID_ACTION)
+// Print "INVALID ACTION" message
+@invalid_action_address
+D=M
+@print_string_address
+M=D
+@invalid_action_length
+D=M
+@print_string_length
+M=D
+@INVALID_ACTION_PRINTED
+D=A
+@print_string_return_address
+M=D
+@PRINT_STRING
+0;JMP
+
+(INVALID_ACTION_PRINTED)
+// Clear the input buffer
+@0
+D=A
+@input_buffer_length
+M=D
+@input_buffer_index
+M=D
 @MAIN
 0;JMP
 
