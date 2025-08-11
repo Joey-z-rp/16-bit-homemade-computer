@@ -1,8 +1,15 @@
+// Temporary variable
+@temp
+M=0
+
 // The number of loops to delay
 @delay_loop_number
 M=0
 // The address to jump to after the delay
 @delay_return_address
+M=0
+// The delay counter
+@delay_counter
 M=0
 
 // The string array address
@@ -53,6 +60,78 @@ M=0
 // Current musical note character for display
 @current_note
 M=0
+
+// Game state variables
+@10
+D=A
+@bat_x
+M=D
+@50
+D=A
+@bat_y
+M=D
+@100
+D=A
+@ball_x
+M=D
+@50
+D=A
+@ball_y
+M=D
+
+// Game speed control - only update game every N main loops
+@game_speed_counter
+M=0
+@20
+D=A
+@game_speed_divisor
+M=D  // Update game every 20 main loops (adjust for speed)
+
+// Ball velocity (positive = right/down, negative = left/up)
+@ball_vel_x
+M=1    // Start moving right
+@ball_vel_y
+M=1    // Start moving down
+
+// Bat movement speed
+@bat_speed
+M=1    // Bat moves 1 pixel per input
+
+// Game update commands
+@game_update_command_1
+M=0
+@game_update_command_2
+M=0
+@game_update_command_3
+M=0
+@game_update_command_4
+M=0
+
+// Game boundaries
+@210
+D=A
+@screen_width
+M=D
+@128
+D=A
+@screen_height
+M=D
+@20
+D=A
+@bat_width
+M=D
+@20
+D=A
+@bat_height
+M=D
+@10
+D=A
+@ball_width
+M=D
+@30
+D=A
+@ball_height
+M=D
 
 // Command synchronization: MSB toggle flag (0 = MSB=0, 32768 = MSB=1)
 @cmd_sync_flag
@@ -394,6 +473,13 @@ M=D
 M=1
 
 (KEYBOARD_CHECK)
+// If it's game mode, jump to game update
+@mode
+D=M
+@2
+D=D-A
+@GAME
+D;JEQ
 // If the last key is the same as the current key, skip the rest of the program
 @KEYBOARD
 D=M
@@ -492,9 +578,18 @@ M=M+1
 D=M
 @5
 D=D-A
+@CHECK_MUSIC_COMMAND
+D;JEQ
+@input_buffer_length
+D=M
+@4
+D=D-A
+@CHECK_GAME_COMMAND
+D;JEQ
 @INVALID_ACTION
-D;JNE
+0;JMP
 
+(CHECK_MUSIC_COMMAND)
 // Check each character of "MUSIC"
 @input_buffer_start
 A=M
@@ -560,6 +655,62 @@ D=A
 M=D
 @is_mode_prompt_printed
 M=0
+@MAIN
+0;JMP
+
+(CHECK_GAME_COMMAND)
+@input_buffer_start
+A=M
+D=M
+@71 // 'G'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+@input_buffer_start
+D=M
+@1
+D=D+A
+A=D
+D=M
+@65 // 'A'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+@input_buffer_start
+D=M
+@2
+D=D+A
+A=D
+D=M
+@77 // 'M'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+@input_buffer_start
+D=M
+@3
+D=D+A
+A=D
+D=M
+@69 // 'E'
+D=D-A
+@INVALID_ACTION
+D;JNE
+
+// Clear the input buffer
+@input_buffer_length
+M=0
+@input_buffer_index
+M=0
+// Enter game mode
+@2
+D=A
+@mode
+M=D
+
 @MAIN
 0;JMP
 
@@ -747,6 +898,127 @@ M=D
 0;JMP
 
 (TOGGLE_MSB_RETURN_MUSIC)
+@MAIN
+0;JMP
+
+(GAME)
+// Increment game speed counter
+@game_speed_counter
+M=M+1
+
+// Check if it's time to update the game
+@game_speed_counter
+D=M
+@game_speed_divisor
+D=D-M
+@MAIN
+D;JLT  // If counter < divisor, skip game update
+
+// Reset counter and update game
+@game_speed_counter
+M=0
+
+// Update ball position
+@ball_x
+D=M
+@ball_vel_x
+D=D+M
+@ball_x
+M=D
+
+@ball_y
+D=M
+@ball_vel_y
+D=D+M
+@ball_y
+M=D
+
+// Render the game after updating positions
+// First word: bits 10..7 contain sprite ID (0-15), bits 6..3 contain variant (0-15)
+// Second word: position for first sprite (210 * 128 coordinate space)
+// Third word: bits 10..7 contain sprite ID (0-15), bits 6..3 contain variant (0-15)
+// Fourth word: position for second sprite (210 * 128 coordinate space)
+// One command moves 2 sprites simultaneously
+
+// The ball sprite
+@8192
+D=A
+// Sprite id 1 variant 0
+@128
+D=D+A
+@cmd_sync_flag
+D=D+M
+@game_update_command_1
+M=D
+// Position for first sprite (210 * 128 coordinate space)
+@ball_y
+D=M
+// shift to the left by 8 bits
+@temp
+M=D
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+@ball_x
+D=D+M
+@cmd_sync_flag
+D=D+M
+@game_update_command_2
+M=D
+
+// The bat sprite
+@8192
+// Sprite id 0 variant 0
+D=A
+@cmd_sync_flag
+D=D+M
+@game_update_command_3
+M=D
+
+// Position for second sprite (210 * 128 coordinate space)
+@bat_y
+D=M
+// shift to the left by 8 bits
+@temp
+M=D
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+D=D+M
+@bat_x
+D=D+M
+@cmd_sync_flag
+D=D+M
+@game_update_command_4
+M=D
+
+// Send the commands
+@game_update_command_1
+D=M
+@UI_CMD_1
+M=D
+@game_update_command_2
+D=M
+@UI_CMD_2
+M=D
+@game_update_command_3
+D=M
+@UI_CMD_3
+M=D
+@game_update_command_4
+D=M
+@UI_CMD_4
+M=D
+
 @MAIN
 0;JMP
 
