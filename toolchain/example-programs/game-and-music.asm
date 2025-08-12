@@ -24,6 +24,12 @@ M=0
 // Current character index for positioning (x-coordinate)
 @print_string_index
 M=0
+// Store the print string command before sending
+@print_string_cmd_1
+M=0
+@print_string_cmd_2
+M=0
+
 // Return address for clear screen function
 @clear_screen_return_address
 M=0
@@ -82,7 +88,7 @@ M=D
 // Game speed control - only update game every N main loops
 @game_speed_counter
 M=0
-@20
+@10
 D=A
 @game_speed_divisor
 M=D  // Update game every 20 main loops (adjust for speed)
@@ -918,6 +924,43 @@ D;JLT  // If counter < divisor, skip game update
 @game_speed_counter
 M=0
 
+// Update bat position
+@KEYBOARD
+D=M
+@87 // 'W'
+D=D-A
+@MOVE_BAT_UP
+D;JEQ
+
+@KEYBOARD
+D=M
+@83 // 'S'
+D=D-A
+@MOVE_BAT_DOWN
+D;JEQ
+
+@UPDATE_BALL_POSITION
+0;JMP
+
+(MOVE_BAT_UP)
+@bat_y
+D=M
+@bat_speed
+D=D-M
+@bat_y
+M=D
+@UPDATE_BALL_POSITION
+0;JMP
+
+(MOVE_BAT_DOWN)
+@bat_y
+D=M
+@bat_speed
+D=D+M
+@bat_y
+M=D
+
+(UPDATE_BALL_POSITION)
 // Update ball position
 @ball_x
 D=M
@@ -957,12 +1000,19 @@ D=M
 @temp
 M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
 @ball_x
 D=D+M
@@ -987,12 +1037,19 @@ D=M
 @temp
 M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
+M=D
 D=D+M
 @bat_x
 D=D+M
@@ -1046,14 +1103,21 @@ D=M
 // Add MSB flag to the character
 @cmd_sync_flag
 D=D+M
-// Send the character to UI_CMD_1
-@UI_CMD_1
+@print_string_cmd_1
 M=D
 @print_string_index
 D=M
-// Add MSB flag to the position
 @cmd_sync_flag
 D=D+M
+@print_string_cmd_2
+M=D
+// Send the commands
+@print_string_cmd_1
+D=M
+@UI_CMD_1
+M=D
+@print_string_cmd_2
+D=M
 @UI_CMD_2
 M=D
 
