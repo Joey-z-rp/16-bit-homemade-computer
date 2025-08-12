@@ -91,7 +91,7 @@ M=0
 @10
 D=A
 @game_speed_divisor
-M=D  // Update game every 20 main loops (adjust for speed)
+M=D  // Update game every 10 main loops (adjust for speed)
 
 // Ball velocity (positive = right/down, negative = left/up)
 @ball_vel_x
@@ -122,21 +122,21 @@ M=D
 D=A
 @screen_height
 M=D
-@20
+@10
 D=A
-@bat_width
-M=D
-@20
-D=A
-@bat_height
+@bat_half_width
 M=D
 @10
 D=A
-@ball_width
+@bat_half_height
 M=D
-@30
+@5
 D=A
-@ball_height
+@ball_half_width
+M=D
+@15
+D=A
+@ball_half_height
 M=D
 
 // Command synchronization: MSB toggle flag (0 = MSB=0, 32768 = MSB=1)
@@ -387,7 +387,7 @@ M=D
 D=A
 @UI_CMD_1
 M=D
-@30000
+@4000
 D=A
 @delay_loop_number
 M=D
@@ -866,7 +866,7 @@ D=D+M // Add the ASCII code of the pressed key
 M=D
 
 // Add small delay after displaying note
-@800
+@200
 D=A
 @delay_loop_number
 M=D
@@ -943,6 +943,14 @@ D;JEQ
 0;JMP
 
 (MOVE_BAT_UP)
+// Check if bat is at the top of the screen
+@bat_y
+D=M
+@bat_half_height
+D=D-M
+@UPDATE_BALL_POSITION
+D;JLT
+
 @bat_y
 D=M
 @bat_speed
@@ -953,6 +961,16 @@ M=D
 0;JMP
 
 (MOVE_BAT_DOWN)
+// Check if bat is at the bottom of the screen
+@bat_y
+D=M
+@bat_half_height
+D=D+M
+@screen_height
+D=D-M
+@UPDATE_BALL_POSITION
+D;JGT
+
 @bat_y
 D=M
 @bat_speed
@@ -976,7 +994,168 @@ D=D+M
 @ball_y
 M=D
 
-// Render the game after updating positions
+// COLLISION DETECTION
+// Check left wall collision (ball_x - ball_half_width < 0)
+@ball_x
+D=M
+@ball_half_width
+D=D-M
+@CHECK_RIGHT_WALL
+D;JGE
+
+// Left wall hit - reverse X velocity
+@ball_vel_x
+D=M
+@0
+D=A-D
+@ball_vel_x
+M=D
+// Set ball_x to ball_half_width to prevent it from going off-screen
+@ball_half_width
+D=M
+@ball_x
+M=D
+
+(CHECK_RIGHT_WALL)
+// Check right wall collision (ball_x + ball_half_width > screen_width)
+@ball_x
+D=M
+@ball_half_width
+D=D+M
+@screen_width
+D=D-M
+@CHECK_TOP_WALL
+D;JLE
+
+// Right wall hit - reverse X velocity
+@ball_vel_x
+D=M
+@0
+D=A-D
+@ball_vel_x
+M=D
+// Set ball_x to screen_width - ball_half_width to prevent it from going off-screen
+@screen_width
+D=M
+@ball_half_width
+D=D-M
+@ball_x
+M=D
+
+(CHECK_TOP_WALL)
+// Check top wall collision (ball_y - ball_half_height < 0)
+@ball_y
+D=M
+@ball_half_height
+D=D-M
+@CHECK_BOTTOM_WALL
+D;JGE
+
+// Top wall hit - reverse Y velocity
+@ball_vel_y
+D=M
+@0
+D=A-D
+@ball_vel_y
+M=D
+// Set ball_y to ball_half_height to prevent it from going off-screen
+@ball_half_height
+D=M
+@ball_y
+M=D
+
+(CHECK_BOTTOM_WALL)
+// Check bottom wall collision (ball_y + ball_half_height > screen_height)
+@ball_y
+D=M
+@ball_half_height
+D=D+M
+@screen_height
+D=D-M
+@CHECK_BAT_COLLISION
+D;JLE
+
+// Bottom wall hit - reverse Y velocity
+@ball_vel_y
+D=M
+@0
+D=A-D
+@ball_vel_y
+M=D
+// Set ball_y to screen_height - ball_half_height to prevent it from going off-screen
+@screen_height
+D=M
+@ball_half_height
+D=D-M
+@ball_y
+M=D
+
+(CHECK_BAT_COLLISION)
+// Check bat collision
+// First check if ball center is in the same X range as bat center
+@ball_x
+D=M
+@bat_x
+D=D-M
+@bat_half_width
+D=D-M
+@bat_half_width
+D=D-M
+@RENDER_GAME
+D;JGT
+
+// Ball is in bat's X range, now check Y collision
+@ball_y
+D=M
+@bat_y
+D=D-M
+// Ball's Y position is the same as bat's Y position
+@BAT_COLLISION
+D;JEQ
+// Ball's Y is less than bat's Y
+@BALL_ABOVE_BAT
+D;JLT
+
+// Ball's Y is greater than bat's Y
+// Ball is below bat
+@ball_y
+D=M
+@bat_y
+D=D-M
+@bat_half_height
+D=D-M
+@ball_half_height
+D=D-M
+@RENDER_GAME
+D;JGE
+@BAT_COLLISION
+0;JMP
+
+(BALL_ABOVE_BAT)
+@bat_y
+D=M
+@ball_y
+D=D-M
+@bat_half_height
+D=D-M
+@ball_half_height
+D=D-M
+@RENDER_GAME
+D;JGT
+
+(BAT_COLLISION)
+// BAT COLLISION DETECTED!
+// Reverse X velocity to bounce the ball
+@ball_vel_x
+D=M
+@0
+D=A-D
+@ball_vel_x
+M=D
+
+(RENDER_GAME)
+
+// Render the game after updating positions and collision detection
 // First word: bits 10..7 contain sprite ID (0-15), bits 6..3 contain variant (0-15)
 // Second word: position for first sprite (210 * 128 coordinate space)
 // Third word: bits 10..7 contain sprite ID (0-15), bits 6..3 contain variant (0-15)
@@ -1132,7 +1311,7 @@ M=D
 (TOGGLE_MSB_RETURN_PRINT_STRING)
 
 // Add delay after sending command
-@800
+@200
 D=A
 @delay_loop_number
 M=D
@@ -1172,7 +1351,7 @@ D=A
 @UI_CMD_1
 M=D
 // Add small delay after clear screen
-@200
+@100
 D=A
 @delay_loop_number
 M=D
