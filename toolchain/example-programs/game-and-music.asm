@@ -71,6 +71,12 @@ M=0
 @current_note
 M=0
 
+// Random number generator
+@random_number_counter
+M=0
+@random_number
+M=0
+
 // Game state variables
 @10
 D=A
@@ -96,6 +102,9 @@ M=0
 D=A
 @game_speed_divisor
 M=D  // Update game every 10 main loops (adjust for speed)
+
+@boosted_ball_speed
+M=0
 
 // Ball velocity (positive = right/down, negative = left/up)
 @0
@@ -424,6 +433,14 @@ M=D
 0;JMP
 
 (MAIN)
+// Generate random number
+@random_number_counter
+M=M+1
+D=M
+@3
+D=D&A
+@random_number // 0, 1 or 2
+M=D
 
 // Delay between each main loop
 @100
@@ -741,12 +758,6 @@ M=0
 D=A
 @mode
 M=D
-// Play game background music
-@3076 // 0 0001 100 00000100
-D=A
-@UI_CMD_1
-M=D
-
 @MAIN
 0;JMP
 
@@ -971,7 +982,7 @@ D;JEQ
 
 @KEYBOARD
 D=M
-@85 // 'U'
+@84 // 'T'
 D=D-A
 @UPGRADE_BAT
 D;JEQ
@@ -1018,6 +1029,15 @@ M=D
 0;JMP
 
 (UPGRADE_BAT)
+@4
+D=A
+@bat_speed
+M=D
+@5
+D=A
+@boosted_ball_speed
+M=D
+
 @bat_upgraded
 D=M
 D=D-1
@@ -1026,6 +1046,24 @@ D;JEQ
 
 @bat_upgraded
 M=1
+// Play game background music
+@3076 // 0 0001 100 00000100
+D=A
+@UI_CMD_1
+M=D
+// Delay to play the sound
+@100
+D=A
+@delay_loop_number
+M=D
+@PLAY_UPGRADE_BAT_SOUND
+D=A
+@delay_return_address
+M=D
+@DELAY
+0;JMP
+
+(PLAY_UPGRADE_BAT_SOUND)
 // Play upgrade bat sound
 @3843 // 0 0001 111 00000011
 D=A
@@ -1072,11 +1110,17 @@ D=D-M
 @CHECK_RIGHT_WALL
 D;JGE
 
-// Left wall hit - reverse X velocity
+// Left wall hit
 @2
 D=A
+@boosted_ball_speed
+D=D+M
+@random_number
+D=D+M
 @ball_vel_x
 M=D
+@boosted_ball_speed
+M=0
 // Set ball_x to ball_half_width to prevent it from going off-screen
 @ball_half_width
 D=M
@@ -1103,9 +1147,13 @@ D=D-M
 @CHECK_TOP_WALL
 D;JLE
 
-// Right wall hit - reverse X velocity
+// Right wall hit
 @2
 D=A
+@boosted_ball_speed
+D=D+M
+@random_number
+D=D+M
 @0
 D=A-D
 @ball_vel_x
@@ -1136,9 +1184,13 @@ D=D-M
 @CHECK_BOTTOM_WALL
 D;JGE
 
-// Top wall hit - reverse Y velocity
+// Top wall hit
 @2
 D=A
+@boosted_ball_speed
+D=D+M
+@random_number
+D=D+M
 @ball_vel_y
 M=D
 // Set ball_y to ball_half_height to prevent it from going off-screen
@@ -1167,9 +1219,13 @@ D=D-M
 @CHECK_BAT_COLLISION
 D;JLE
 
-// Bottom wall hit - reverse Y velocity
+// Bottom wall hit
 @2
 D=A
+@boosted_ball_speed
+D=D+M
+@random_number
+D=D+M
 @0
 D=A-D
 @ball_vel_y
@@ -1288,9 +1344,13 @@ M=D
 (HANDLE_BAT_COLLISION)
 @bat_collided_with_ball
 M=1
-// Reverse X velocity to bounce the ball
+// Bounce the ball
 @2
 D=A
+@boosted_ball_speed
+D=D+M
+@random_number
+D=D+M
 @ball_vel_x
 M=D
 
