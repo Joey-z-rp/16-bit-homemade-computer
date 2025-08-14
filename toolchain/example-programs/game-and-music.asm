@@ -104,8 +104,10 @@ M=D    // Start moving left
 M=1    // Start moving down
 
 // Bat movement speed
+@2
+D=A
 @bat_speed
-M=1    // Bat moves 1 pixel per input
+M=D    // Bat moves 1 pixel per input
 
 @bat_variant
 M=0
@@ -141,11 +143,11 @@ M=D
 D=A
 @screen_height
 M=D
-@10
+@12
 D=A
 @bat_half_width
 M=D
-@10
+@13
 D=A
 @bat_half_height
 M=D
@@ -1041,10 +1043,8 @@ D=D-M
 D;JGE
 
 // Left wall hit - reverse X velocity
-@ball_vel_x
-D=M
-@0
-D=A-D
+@2
+D=A
 @ball_vel_x
 M=D
 // Set ball_x to ball_half_width to prevent it from going off-screen
@@ -1069,8 +1069,8 @@ D=D-M
 D;JLE
 
 // Right wall hit - reverse X velocity
-@ball_vel_x
-D=M
+@2
+D=A
 @0
 D=A-D
 @ball_vel_x
@@ -1095,10 +1095,8 @@ D=D-M
 D;JGE
 
 // Top wall hit - reverse Y velocity
-@ball_vel_y
-D=M
-@0
-D=A-D
+@2
+D=A
 @ball_vel_y
 M=D
 // Set ball_y to ball_half_height to prevent it from going off-screen
@@ -1123,8 +1121,8 @@ D=D-M
 D;JLE
 
 // Bottom wall hit - reverse Y velocity
-@ball_vel_y
-D=M
+@2
+D=A
 @0
 D=A-D
 @ball_vel_y
@@ -1148,7 +1146,7 @@ D=M
 D=D-M
 @bat_half_width
 D=D-M
-@bat_half_width
+@ball_half_width
 D=D-M
 @RENDER_GAME
 D;JGT
@@ -1197,10 +1195,8 @@ D;JGT
 @bat_collided_with_ball
 M=1
 // Reverse X velocity to bounce the ball
-@ball_vel_x
-D=M
-@0
-D=A-D
+@2
+D=A
 @ball_vel_x
 M=D
 
