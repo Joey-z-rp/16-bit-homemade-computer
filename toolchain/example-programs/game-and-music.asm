@@ -94,14 +94,33 @@ D=A
 M=D  // Update game every 10 main loops (adjust for speed)
 
 // Ball velocity (positive = right/down, negative = left/up)
+@0
+D=A
+@2
+D=D-A
 @ball_vel_x
-M=1    // Start moving right
+M=D    // Start moving left
 @ball_vel_y
 M=1    // Start moving down
 
 // Bat movement speed
 @bat_speed
 M=1    // Bat moves 1 pixel per input
+
+@bat_variant
+M=0
+
+// Bat collided with ball flag
+@bat_collided_with_ball
+M=0
+// Bat upgraded flag
+@bat_upgraded
+M=0
+
+@2
+D=A
+@collision_position_offset
+M=D
 
 // Game update commands
 @game_update_command_1
@@ -134,7 +153,7 @@ M=D
 D=A
 @ball_half_width
 M=D
-@15
+@10
 D=A
 @ball_half_height
 M=D
@@ -387,7 +406,7 @@ M=D
 D=A
 @UI_CMD_1
 M=D
-@4000
+@15000
 D=A
 @delay_loop_number
 M=D
@@ -939,6 +958,13 @@ D=D-A
 @MOVE_BAT_DOWN
 D;JEQ
 
+@KEYBOARD
+D=M
+@85 // 'U'
+D=D-A
+@UPGRADE_BAT
+D;JEQ
+
 @UPDATE_BALL_POSITION
 0;JMP
 
@@ -977,6 +1003,13 @@ D=M
 D=D+M
 @bat_y
 M=D
+@UPDATE_BALL_POSITION
+0;JMP
+
+(UPGRADE_BAT)
+@bat_upgraded
+M=1
+
 
 (UPDATE_BALL_POSITION)
 // Update ball position
@@ -993,6 +1026,10 @@ D=M
 D=D+M
 @ball_y
 M=D
+
+// Reset bat collided with ball flag
+@bat_collided_with_ball
+M=0
 
 // COLLISION DETECTION
 // Check left wall collision (ball_x - ball_half_width < 0)
@@ -1013,8 +1050,12 @@ M=D
 // Set ball_x to ball_half_width to prevent it from going off-screen
 @ball_half_width
 D=M
+@collision_position_offset
+D=D+M
 @ball_x
 M=D
+@CHECK_TOP_WALL
+0;JMP
 
 (CHECK_RIGHT_WALL)
 // Check right wall collision (ball_x + ball_half_width > screen_width)
@@ -1039,6 +1080,8 @@ M=D
 D=M
 @ball_half_width
 D=D-M
+@collision_position_offset
+D=D-M
 @ball_x
 M=D
 
@@ -1061,8 +1104,12 @@ M=D
 // Set ball_y to ball_half_height to prevent it from going off-screen
 @ball_half_height
 D=M
+@collision_position_offset
+D=D+M
 @ball_y
 M=D
+@CHECK_BAT_COLLISION
+0;JMP
 
 (CHECK_BOTTOM_WALL)
 // Check bottom wall collision (ball_y + ball_half_height > screen_height)
@@ -1086,6 +1133,8 @@ M=D
 @screen_height
 D=M
 @ball_half_height
+D=D-M
+@collision_position_offset
 D=D-M
 @ball_y
 M=D
@@ -1145,12 +1194,25 @@ D;JGT
 
 (BAT_COLLISION)
 // BAT COLLISION DETECTED!
+@bat_collided_with_ball
+M=1
 // Reverse X velocity to bounce the ball
 @ball_vel_x
 D=M
 @0
 D=A-D
 @ball_vel_x
+M=D
+
+@bat_x
+D=M
+@bat_half_width
+D=D+M
+@ball_half_width
+D=D+M
+@collision_position_offset
+D=D+M
+@ball_x
 M=D
 
 (RENDER_GAME)
@@ -1201,9 +1263,54 @@ D=D+M
 M=D
 
 // The bat sprite
-@8192
-// Sprite id 0 variant 0
+@bat_upgraded
+D=M
+D=D-1
+@RENDER_UPGRADED_BAT
+D;JEQ
+
+@bat_collided_with_ball
+D=M
+D=D-1
+@RENDER_REGULAR_BAT_COLLISION
+D;JEQ
+@bat_variant
+M=0
+@SET_RENDER_BAT_COMMAND
+0;JMP
+
+(RENDER_REGULAR_BAT_COLLISION)
+@8 // regular bat collision variant
 D=A
+@bat_variant
+M=D
+@SET_RENDER_BAT_COMMAND
+0;JMP
+
+(RENDER_UPGRADED_BAT)
+@bat_collided_with_ball
+D=M
+D=D-1
+@RENDER_UPGRADED_BAT_COLLISION
+D;JEQ
+@16 // upgraded bat variant
+D=A
+@bat_variant
+M=D
+@SET_RENDER_BAT_COMMAND
+0;JMP
+
+(RENDER_UPGRADED_BAT_COLLISION)
+@24 // upgraded bat collision variant
+D=A
+@bat_variant
+M=D
+
+(SET_RENDER_BAT_COMMAND)
+@bat_variant
+D=M
+@8192 // Sprite id 0 base
+D=D+A
 @cmd_sync_flag
 D=D+M
 @game_update_command_3
