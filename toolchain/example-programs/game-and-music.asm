@@ -38,6 +38,10 @@ M=0
 @toggle_msb_return
 M=0
 
+// Return address for play bounce sound function
+@play_bounce_sound_return
+M=0
+
 // The last key pressed
 @last_key
 M=0
@@ -737,6 +741,11 @@ M=0
 D=A
 @mode
 M=D
+// Play game background music
+@3076 // 0 0001 100 00000100
+D=A
+@UI_CMD_1
+M=D
 
 @MAIN
 0;JMP
@@ -879,7 +888,7 @@ D=A
 M=D
 
 // Send play sample command
-@2048 // 0 0001 000 00000000
+@3840 // 0 0001 111 00000000
 D=A
 @KEYBOARD
 D=D+M // Add the ASCII code of the pressed key
@@ -1010,8 +1019,29 @@ M=D
 
 (UPGRADE_BAT)
 @bat_upgraded
-M=1
+D=M
+D=D-1
+@UPDATE_BALL_POSITION
+D;JEQ
 
+@bat_upgraded
+M=1
+// Play upgrade bat sound
+@3843 // 0 0001 111 00000011
+D=A
+@UI_CMD_1
+M=D
+// Delay to play the sound
+@100
+D=A
+@delay_loop_number
+M=D
+@UPDATE_BALL_POSITION
+D=A
+@delay_return_address
+M=D
+@DELAY
+0;JMP
 
 (UPDATE_BALL_POSITION)
 // Update ball position
@@ -1054,7 +1084,12 @@ D=M
 D=D+M
 @ball_x
 M=D
+// Play bounce sound
 @CHECK_TOP_WALL
+D=A
+@play_bounce_sound_return
+M=D
+@PLAY_BOUNCE_SOUND
 0;JMP
 
 (CHECK_RIGHT_WALL)
@@ -1084,6 +1119,13 @@ D=D-M
 D=D-M
 @ball_x
 M=D
+// Play bounce sound
+@CHECK_TOP_WALL
+D=A
+@play_bounce_sound_return
+M=D
+@PLAY_BOUNCE_SOUND
+0;JMP
 
 (CHECK_TOP_WALL)
 // Check top wall collision (ball_y - ball_half_height < 0)
@@ -1106,7 +1148,12 @@ D=M
 D=D+M
 @ball_y
 M=D
+// Play bounce sound
 @CHECK_BAT_COLLISION
+D=A
+@play_bounce_sound_return
+M=D
+@PLAY_BOUNCE_SOUND
 0;JMP
 
 (CHECK_BOTTOM_WALL)
@@ -1136,6 +1183,13 @@ D=D-M
 D=D-M
 @ball_y
 M=D
+// Play bounce sound
+@CHECK_BAT_COLLISION
+D=A
+@play_bounce_sound_return
+M=D
+@PLAY_BOUNCE_SOUND
+0;JMP
 
 (CHECK_BAT_COLLISION)
 // Check bat collision
@@ -1192,6 +1246,46 @@ D;JGT
 
 (BAT_COLLISION)
 // BAT COLLISION DETECTED!
+
+// Play bat collision sound
+@bat_upgraded
+D=M-1
+@PLAY_UPGRADED_BAT_COLLISION_SOUND
+D;JEQ
+@3840 // 0 0001 111 00000000
+D=A
+@UI_CMD_1
+M=D
+// Delay to play the sound
+@100
+D=A
+@delay_loop_number
+M=D
+@HANDLE_BAT_COLLISION
+D=A
+@delay_return_address
+M=D
+@DELAY
+0;JMP
+
+(PLAY_UPGRADED_BAT_COLLISION_SOUND)
+@3841 // 0 0001 111 00000001
+D=A
+@UI_CMD_1
+M=D
+// Delay to play the sound
+@100
+D=A
+@delay_loop_number
+M=D
+@HANDLE_BAT_COLLISION
+D=A
+@delay_return_address
+M=D
+@DELAY
+0;JMP
+
+(HANDLE_BAT_COLLISION)
 @bat_collided_with_ball
 M=1
 // Reverse X velocity to bounce the ball
@@ -1495,4 +1589,21 @@ M=D
 // Return to caller
 @toggle_msb_return
 A=M
+0;JMP
+
+(PLAY_BOUNCE_SOUND)
+@3842 // 0 0001 111 00000010
+D=A
+@UI_CMD_1
+M=D
+// Delay to play the sound
+@100
+D=A
+@delay_loop_number
+M=D
+@play_bounce_sound_return
+D=M
+@delay_return_address
+M=D
+@DELAY
 0;JMP
