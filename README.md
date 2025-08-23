@@ -16,6 +16,7 @@ The computer consists of several interconnected components:
 ## 🛠️ Hardware Components
 
 This computer was mainly built with 74LS series chips. Because the instruction set expects the RAM to behave like a register, FPGA was used to emulate the RAM.
+Because of the wiring, routing, EMI etc., this version is not stable enough to run high level language such as the Jack language from From Nand to Tetris course.
 
 ## 💻 Modular Design
 
